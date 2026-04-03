@@ -15,6 +15,7 @@ function flattenValidationErrors(
   errors: ValidationIssue[],
   parentPath = '',
 ): Record<string, string> {
+  // Flatten nested validation errors into dot-path keys (e.g. user.email).
   return errors.reduce<Record<string, string>>((validationMessages, error) => {
     const propertyPath = parentPath
       ? `${parentPath}.${error.property}`
@@ -42,12 +43,16 @@ function flattenValidationErrors(
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Normalize all successful responses into a shared API contract.
   app.useGlobalInterceptors(new ResponseMaskInterceptor(app.get(Reflector)));
+  // Normalize all thrown errors into the same API contract.
   app.useGlobalFilters(new ApiExceptionFilter());
+  // Validate and transform request payloads globally.
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
+      // Return validation errors in the custom error shape used by the filter.
       exceptionFactory: (errors: ValidationIssue[]) =>
         new BadRequestException({
           message: 'Validation error',
