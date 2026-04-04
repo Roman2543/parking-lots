@@ -1,11 +1,20 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { SuccessMessage } from '../common/decorators/success-message.decorator';
 import { ParkCarDto } from './dtos/request-park-car.dto';
 import { ParkCarResponseDto } from './dtos/response-park-car.dto';
 import { LeaveCarDto } from './dtos/request-leave-car.dto';
 import { LeaveCarResponseDto } from './dtos/response-leave-car.dto';
+
 import { ParkCarService } from './park-car.service';
+import { ListByCarSizeResponseDto } from './dtos/response-get-list.dto';
+import { GetListByCarSizeDto } from './dtos/request-get-list.dto';
+import { ListByCarSizeType } from '../common/enums/list-by-car-size-type.enum';
 
 @Controller('parking-car')
 @ApiTags('parking-car')
@@ -32,5 +41,29 @@ export class ParkCarController {
   @ApiOkResponse({ type: LeaveCarResponseDto })
   async leaveCar(@Body() body: LeaveCarDto): Promise<LeaveCarResponseDto> {
     return this.parkCarService.leaveCar(body);
+  }
+
+  @Get('list')
+  @HttpCode(200)
+  @SuccessMessage('List by car size fetched successfully')
+  @ApiOperation({
+    summary:
+      'Get registration plate list or parking slot status list by car size',
+  })
+  @ApiQuery({
+    name: 'field',
+    required: true,
+    enum: ListByCarSizeType,
+  })
+  @ApiQuery({
+    name: 'car_size',
+    required: true,
+    enum: ['small', 'medium', 'large'],
+  })
+  @ApiOkResponse({ type: ListByCarSizeResponseDto })
+  getListByCarSize(
+    @Query() query: GetListByCarSizeDto,
+  ): Promise<ListByCarSizeResponseDto> {
+    return this.parkCarService.getListByCarSize(query.field, query.car_size);
   }
 }

@@ -10,6 +10,8 @@ import { ParkCarService } from '../park-car.service';
 import { ParkCarDto } from '../dtos/request-park-car.dto';
 import { LeaveCarDto } from '../dtos/request-leave-car.dto';
 import { ParkCarResponseDto } from '../dtos/response-park-car.dto';
+import { GetListByCarSizeDto } from '../dtos/request-get-list.dto';
+import { ListByCarSizeType } from '../../common/enums/list-by-car-size-type.enum';
 
 describe('ParkCarController', () => {
   let controller: ParkCarController;
@@ -17,6 +19,7 @@ describe('ParkCarController', () => {
   const mockParkCarService = {
     parkCar: jest.fn() as jest.Mock,
     leaveCar: jest.fn() as jest.Mock,
+    getListByCarSize: jest.fn() as jest.Mock,
   };
 
   beforeEach(() => {
@@ -129,6 +132,63 @@ describe('ParkCarController', () => {
       // Act & Assert
       await expect(controller.leaveCar(dto)).rejects.toThrow(
         'This vehicle is not currently parked.',
+      );
+    });
+  });
+
+  describe('getListByCarSize', () => {
+    it('should return registration plate list when field is registration-plate', async () => {
+      // Arrange
+      const query: GetListByCarSizeDto = {
+        field: ListByCarSizeType.REGISTRATION_PLATE,
+        car_size: 'small',
+      };
+      const expected = {
+        field: ListByCarSizeType.REGISTRATION_PLATE,
+        car_size: 'small',
+        registration_plates: ['1กข1234', 'AA-1234'],
+      };
+      mockParkCarService.getListByCarSize.mockImplementation(() =>
+        Promise.resolve(expected),
+      );
+
+      // Act
+      const result = await controller.getListByCarSize(query);
+
+      // Assert
+      expect(result).toEqual(expected);
+      expect(mockParkCarService.getListByCarSize).toHaveBeenCalledWith(
+        ListByCarSizeType.REGISTRATION_PLATE,
+        'small',
+      );
+    });
+
+    it('should return parking slot list when field is parking-slot', async () => {
+      // Arrange
+      const query: GetListByCarSizeDto = {
+        field: ListByCarSizeType.PARKING_SLOT,
+        car_size: 'small',
+      };
+      const expected = {
+        field: ListByCarSizeType.PARKING_SLOT,
+        car_size: 'small',
+        parking_slots: [
+          { zone_name: 'A', slot_number: 1, status: 'available' },
+          { zone_name: 'A', slot_number: 2, status: 'occupied' },
+        ],
+      };
+      mockParkCarService.getListByCarSize.mockImplementation(() =>
+        Promise.resolve(expected),
+      );
+
+      // Act
+      const result = await controller.getListByCarSize(query);
+
+      // Assert
+      expect(result).toEqual(expected);
+      expect(mockParkCarService.getListByCarSize).toHaveBeenCalledWith(
+        ListByCarSizeType.PARKING_SLOT,
+        'small',
       );
     });
   });

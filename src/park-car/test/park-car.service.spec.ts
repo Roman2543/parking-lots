@@ -6,6 +6,7 @@ import { VehicleLogModel } from '../../common/models/vehicle-log.model';
 import { ParkingSlotModel } from '../../common/models/parking-slot.model';
 import { ParkCarDto } from '../dtos/request-park-car.dto';
 import { LeaveCarDto } from '../dtos/request-leave-car.dto';
+import { ListByCarSizeType } from '../../common/enums/list-by-car-size-type.enum';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(),
@@ -29,6 +30,7 @@ describe('ParkCarService', () => {
 
   const mockVehicleRepository = {
     create: jest.fn((value) => value) as jest.Mock,
+    find: jest.fn() as jest.Mock,
   };
 
   const mockManager = {
@@ -40,6 +42,7 @@ describe('ParkCarService', () => {
 
   const mockDataSource = {
     transaction: jest.fn() as jest.Mock,
+    createQueryBuilder: jest.fn() as jest.Mock,
   };
 
   beforeEach(() => {
@@ -466,6 +469,81 @@ describe('ParkCarService', () => {
         'Selected parking slot is no longer occupied',
       );
       expect(mockManager.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getListByCarSize', () => {
+    it('should return registration plate list when field is registration-plate', async () => {
+      // Arrange
+      mockVehicleRepository.find.mockImplementation(() =>
+        Promise.resolve([
+          { plate_number: '1กข1234' },
+          { plate_number: 'AA-1234' },
+        ]),
+      );
+
+      // Act
+      const result = await service.getListByCarSize(
+        ListByCarSizeType.REGISTRATION_PLATE,
+        'small',
+      );
+
+      // Assert
+      expect(result).toEqual({
+        field: ListByCarSizeType.REGISTRATION_PLATE,
+        car_size: 'small',
+        registration_plates: ['1กข1234', 'AA-1234'],
+      });
+      expect(mockVehicleRepository.find).toHaveBeenCalledWith({
+        where: { car_size: 'small' },
+        order: { plate_number: 'ASC' },
+      });
+    });
+
+    it('should return parking slot list sorted by zone name and slot number when field is parking-slot', async () => {
+      // Arrange
+      const listQueryBuilder = {
+        from: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockImplementation(() =>
+          Promise.resolve([
+            { zone_name: 'A', slot_number: '1', status: 'available' },
+            { zone_name: 'A', slot_number: '2', status: 'occupied' },
+            { zone_name: 'B', slot_number: '1', status: 'inactive' },
+          ]),
+        ),
+      };
+      mockDataSource.createQueryBuilder.mockReturnValue(listQueryBuilder);
+
+      // Act
+      const result = await service.getListByCarSize(
+        ListByCarSizeType.PARKING_SLOT,
+        'small',
+      );
+
+      // Assert
+      expect(result).toEqual({
+        field: ListByCarSizeType.PARKING_SLOT,
+        car_size: 'small',
+        parking_slots: [
+          { zone_name: 'A', slot_number: 1, status: 'available' },
+          { zone_name: 'A', slot_number: 2, status: 'occupied' },
+          { zone_name: 'B', slot_number: 1, status: 'inactive' },
+        ],
+      });
+      expect(listQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'zone.zone_name',
+        'ASC',
+      );
+      expect(listQueryBuilder.addOrderBy).toHaveBeenCalledWith(
+        'slot.slot_number',
+        'ASC',
+      );
     });
   });
 });

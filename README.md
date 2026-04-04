@@ -378,6 +378,65 @@ curl -X GET "http://localhost:3000/parking-lot/status?zone_name=A&parking_lot=1"
 }
 ```
 
+### 6) Get List By Car Size
+
+- Method: `GET`
+- Path: `/parking-car/list`
+- Query (required):
+  - `field`: `registration-plate | parking-slot`
+  - `car_size`: `small | medium | large`
+
+### cURL (registration plate list)
+
+```bash
+curl -X GET "http://localhost:3000/parking-car/list?field=registration-plate&car_size=small"
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "List by car size fetched successfully",
+  "data": {
+    "field": "registration-plate",
+    "car_size": "small",
+    "registration_plates": ["1กข1234", "AA-1234"]
+  }
+}
+```
+
+### cURL (parking slot status list)
+
+```bash
+curl -X GET "http://localhost:3000/parking-car/list?field=parking-slot&car_size=small"
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "List by car size fetched successfully",
+  "data": {
+    "field": "parking-slot",
+    "car_size": "small",
+    "parking_slots": [
+      {
+        "zone_name": "A",
+        "slot_number": 1,
+        "status": "available"
+      },
+      {
+        "zone_name": "A",
+        "slot_number": 2,
+        "status": "occupied"
+      }
+    ]
+  }
+}
+```
+
 ## Database Structure
 
 สคริปต์เริ่มต้นอยู่ที่ `docker/mssql/init.sql`

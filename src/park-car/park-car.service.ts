@@ -8,12 +8,14 @@ import { VehicleModel } from '../common/models/vehicle.model';
 import { VehicleLogModel } from '../common/models/vehicle-log.model';
 import { VehicleStatus } from '../common/enums/vehicle-status.enum';
 import { VehicleLogEventType } from '../common/enums/vehicle-log-event-type.enum';
+import { ListByCarSizeType } from '../common/enums/list-by-car-size-type.enum';
 import { ParkCarDto } from './dtos/request-park-car.dto';
 import { ParkCarResponseDto } from './dtos/response-park-car.dto';
 import { LeaveCarDto } from './dtos/request-leave-car.dto';
 import { LeaveCarResponseDto } from './dtos/response-leave-car.dto';
 import { AvailableSlotDto } from './dtos/available-slot.dto';
 import { VehicleLogContextDto } from './dtos/vehicle-log-context.dto';
+import { ListByCarSizeResponseDto } from './dtos/response-get-list.dto';
 
 @Injectable()
 export class ParkCarService {
@@ -113,6 +115,50 @@ export class ParkCarService {
       plate_number,
       slot_id: leftSlotId,
       status: VehicleStatus.LEFT,
+    };
+  }
+
+  async getListByCarSize(
+    field: ListByCarSizeType,
+    carSize: string,
+  ): Promise<ListByCarSizeResponseDto> {
+    if (field === ListByCarSizeType.REGISTRATION_PLATE) {
+      const vehicles = await this.vehicle.find({
+        where: { car_size: carSize },
+        order: { plate_number: 'ASC' },
+      });
+
+      return {
+        field,
+        car_size: carSize,
+        registration_plates: vehicles.map((vehicle) => vehicle.plate_number),
+      };
+    }
+
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .from(ParkingSlotModel, 'slot')
+      .innerJoin(ParkingZoneModel, 'zone', 'zone.zone_id = slot.zone_id')
+      .where('zone.car_size = :car_size', { car_size: carSize })
+      .select('zone.zone_name', 'zone_name')
+      .addSelect('slot.slot_number', 'slot_number')
+      .addSelect('slot.status', 'status')
+      .orderBy('zone.zone_name', 'ASC')
+      .addOrderBy('slot.slot_number', 'ASC')
+      .getRawMany<{
+        zone_name: string;
+        slot_number: string | number;
+        status: string;
+      }>();
+
+    return {
+      field,
+      car_size: carSize,
+      parking_slots: rows.map((row) => ({
+        zone_name: row.zone_name,
+        slot_number: Number(row.slot_number),
+        status: row.status,
+      })),
     };
   }
 
