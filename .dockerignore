@@ -1,0 +1,10 @@
+node_modules
+coverage
+dist
+.git
+.gitignore
+.vscode
+Dockerfile*
+docker-compose*.yml
+npm-debug.log*
+yarn-error.log*

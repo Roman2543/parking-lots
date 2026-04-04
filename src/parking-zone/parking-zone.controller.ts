@@ -5,14 +5,23 @@ import { SuccessMessage } from '../common/decorators/success-message.decorator';
 import { CreateParkingZoneResponseDto } from './dtos/response-create-parking-zone.dto';
 import { ParkingZoneAvailableLotsResponseDto } from './dtos/response-parking-zone-available-lots.dto';
 import { GetParkingZonesDto } from './dtos/request-get-parking-zones.dto';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @Controller('parking-lot')
+@ApiTags('parking-lot')
 export class ParkingZoneController {
   constructor(private readonly parkingZoneService: ParkingZoneService) {}
 
   @Post('create')
   @HttpCode(201)
   @SuccessMessage('Parking lot created successfully')
+  @ApiOperation({ summary: 'Create parking zone with parking slots' })
+  @ApiOkResponse({ type: CreateParkingZoneResponseDto })
   async createParkingLot(
     @Body() body: CreateParkingZoneDto,
   ): Promise<CreateParkingZoneResponseDto> {
@@ -22,6 +31,13 @@ export class ParkingZoneController {
   @Get('available-zones')
   @HttpCode(200)
   @SuccessMessage('Parking zones fetched successfully')
+  @ApiOperation({ summary: 'Get available parking lots by zone' })
+  @ApiQuery({
+    name: 'car_size',
+    required: false,
+    enum: ['small', 'medium', 'large'],
+  })
+  @ApiOkResponse({ type: ParkingZoneAvailableLotsResponseDto, isArray: true })
   async getParkingZones(
     @Query() query: GetParkingZonesDto,
   ): Promise<ParkingZoneAvailableLotsResponseDto[]> {

@@ -16,7 +16,8 @@ services:
     image: mcr.microsoft.com/mssql-tools
     container_name: parking-lots-mssql-init
     depends_on:
-      - mssql
+      mssql:
+        condition: service_started
     environment:
       MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
       APP_DB_USER: "app_user"
@@ -37,6 +38,27 @@ services:
           -S mssql -U sa -P "$$MSSQL_SA_PASSWORD" \
           -i /tmp/init.sql
     restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: parking-lots-app
+    depends_on:
+      mssql:
+        condition: service_started
+      mssql-init:
+        condition: service_completed_successfully
+    environment:
+      PORT: "3000"
+      DB_HOST: "mssql"
+      DB_PORT: "1433"
+      DB_USER: "app_user"
+      DB_PASSWORD: "AppUser!Passw0rd"
+      DB_NAME: "parking_lots"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
 
 volumes:
   mssql-data:

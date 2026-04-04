@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ResponseMaskInterceptor } from './common/interceptors/response-mask.interceptor';
@@ -42,6 +43,15 @@ function flattenValidationErrors(
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Parking Lots API')
+    .setDescription('API documentation for Parking Lots service')
+    .setVersion('1.0.0')
+    .build();
+
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, swaggerDocument);
 
   // Normalize all successful responses into a shared API contract.
   app.useGlobalInterceptors(new ResponseMaskInterceptor(app.get(Reflector)));

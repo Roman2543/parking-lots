@@ -23,11 +23,23 @@ yarn install
 docker compose up -d
 ```
 
-### 3) รัน API
+### 3) รัน API แบบ local
 
 ```bash
 yarn start:dev
 ```
+
+### 4) รันทั้ง App + DB บน Docker
+
+```bash
+docker compose up -d --build
+```
+
+หมายเหตุ:
+
+- API จะพร้อมใช้งานที่ `http://localhost:3000`
+- DB จะพร้อมใช้งานที่ `localhost:1433`
+- หากต้องการหยุดทุก container ใช้ `docker compose down`
 
 ค่าเริ่มต้นของเซิร์ฟเวอร์:
 
