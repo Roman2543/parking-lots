@@ -18,7 +18,8 @@ export class ParkingZoneService {
   async createZoneWithSlots(
     zone_name: string,
     parking_space: number,
-  ): Promise<{ zone_name: string; total_slots: number }> {
+    car_size: string,
+  ): Promise<{ zone_name: string; total_slots: number; car_size: string }> {
     const existingZone = await this.parkingZone.findOne({
       where: { zone_name },
     });
@@ -31,6 +32,7 @@ export class ParkingZoneService {
       const zone = this.parkingZone.create({
         zone_id: uuidv4(),
         zone_name,
+        car_size,
         status: 'active',
       });
 
@@ -53,6 +55,7 @@ export class ParkingZoneService {
     return {
       zone_name,
       total_slots: parking_space,
+      car_size,
     };
   }
 }

@@ -14,6 +14,9 @@ export class ParkingZoneModel {
   @Column({ type: 'nvarchar', length: 100 })
   zone_name: string;
 
+  @Column({ type: 'varchar', length: 10 })
+  car_size: string;
+
   @Column({ type: 'nvarchar', length: 20 })
   status: string;
 

@@ -1,9 +1,13 @@
-import { IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateParkingZoneDto {
   @IsString()
   @IsNotEmpty()
   zone_name: string;
+
+  @IsString()
+  @IsIn(['small', 'medium', 'large'])
+  car_size: string;
 
   @IsInt()
   @IsNotEmpty()

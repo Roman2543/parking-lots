@@ -27,6 +27,8 @@ BEGIN
       CONSTRAINT PK_parking_zones PRIMARY KEY
       DEFAULT NEWID(),
     zone_name NVARCHAR(100) NOT NULL,
+    car_size VARCHAR(10) NOT NULL
+      CONSTRAINT DF_parking_zones_car_size DEFAULT 'medium',
     status VARCHAR(20) NOT NULL
       CONSTRAINT DF_parking_zones_status DEFAULT 'active',
     created_at DATETIME2(0) NOT NULL
@@ -34,6 +36,7 @@ BEGIN
     updated_at DATETIME2(0) NOT NULL
       CONSTRAINT DF_parking_zones_updated_at DEFAULT SYSUTCDATETIME(),
     CONSTRAINT UQ_parking_zones_zone_name UNIQUE (zone_name),
+    CONSTRAINT CK_parking_zones_car_size CHECK (car_size IN ('small', 'medium', 'large')),
     CONSTRAINT CK_parking_zones_status CHECK (status IN ('active', 'inactive'))
   );
 END;

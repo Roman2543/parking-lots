@@ -14,6 +14,7 @@ export class ParkingZoneController {
     return this.parkingZoneService.createZoneWithSlots(
       body.zone_name,
       body.parking_space,
+      body.car_size,
     );
   }
 }

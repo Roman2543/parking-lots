@@ -55,6 +55,7 @@ describe('ParkingZoneService', () => {
     // Arrange
     const zoneName = 'A';
     const parkingSpace = 2;
+    const carSize = 'small';
 
     mockParkingZoneRepository.findOne.mockImplementation(() =>
       Promise.resolve(null),
@@ -85,17 +86,23 @@ describe('ParkingZoneService', () => {
     });
 
     // Act
-    const result = await service.createZoneWithSlots(zoneName, parkingSpace);
+    const result = await service.createZoneWithSlots(
+      zoneName,
+      parkingSpace,
+      carSize,
+    );
 
     // Assert
     expect(result.zone_name).toEqual('A');
     expect(result.total_slots).toEqual(2);
+    expect(result.car_size).toEqual('small');
     expect(mockParkingZoneRepository.findOne).toHaveBeenCalledWith({
       where: { zone_name: 'A' },
     });
     expect(mockManager.save).toHaveBeenCalledWith(ParkingZoneModel, {
       zone_id: 'zone-uuid-1',
       zone_name: 'A',
+      car_size: 'small',
       status: 'active',
     });
     expect(mockManager.save).toHaveBeenCalledWith(ParkingSlotModel, [
@@ -125,7 +132,7 @@ describe('ParkingZoneService', () => {
     );
 
     // Act
-    const action = service.createZoneWithSlots('A', 1);
+    const action = service.createZoneWithSlots('A', 1, 'small');
 
     // Assert
     await expect(action).rejects.toThrow('Zone name already exists');
