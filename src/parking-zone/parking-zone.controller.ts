@@ -5,6 +5,8 @@ import { SuccessMessage } from '../common/decorators/success-message.decorator';
 import { CreateParkingZoneResponseDto } from './dtos/response-create-parking-zone.dto';
 import { ParkingZoneAvailableLotsResponseDto } from './dtos/response-parking-zone-available-lots.dto';
 import { GetParkingZonesDto } from './dtos/request-get-parking-zones.dto';
+import { GetParkingLotStatusDto } from './dtos/request-get-parking-lot-status.dto';
+import { ParkingLotStatusResponseDto } from './dtos/response-parking-lot-status.dto';
 import {
   ApiOkResponse,
   ApiOperation,
@@ -42,5 +44,21 @@ export class ParkingZoneController {
     @Query() query: GetParkingZonesDto,
   ): Promise<ParkingZoneAvailableLotsResponseDto[]> {
     return this.parkingZoneService.getParkingZonesAvailableLots(query.car_size);
+  }
+
+  @Get('status')
+  @HttpCode(200)
+  @SuccessMessage('Parking lot status fetched successfully')
+  @ApiOperation({ summary: 'Get parking lot status by zone and lot number' })
+  @ApiQuery({ name: 'zone_name', required: true, example: 'A' })
+  @ApiQuery({ name: 'parking_lot', required: true, example: 1 })
+  @ApiOkResponse({ type: ParkingLotStatusResponseDto })
+  async getParkingLotStatus(
+    @Query() query: GetParkingLotStatusDto,
+  ): Promise<ParkingLotStatusResponseDto> {
+    return this.parkingZoneService.getParkingLotStatus(
+      query.zone_name,
+      query.parking_lot,
+    );
   }
 }

@@ -27,6 +27,7 @@ describe('ParkingZoneService', () => {
    */
   const mockParkingSlotRepository = {
     create: jest.fn() as jest.Mock,
+    findOne: jest.fn() as jest.Mock,
   };
 
   /**
@@ -225,6 +226,69 @@ describe('ParkingZoneService', () => {
         { car_size: 'small' },
       );
       expect(queryBuilder.getRawMany).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getParkingLotStatus', () => {
+    it('should return parking lot status when zone and lot exist', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve({ zone_id: 'zone-1', zone_name: 'A' }),
+      );
+      mockParkingSlotRepository.findOne.mockImplementation(() =>
+        Promise.resolve({
+          slot_id: 'slot-3',
+          zone_id: 'zone-1',
+          slot_number: 3,
+          status: 'occupied',
+        }),
+      );
+
+      // Act
+      const result = await service.getParkingLotStatus('A', 3);
+
+      // Assert
+      expect(result).toEqual({
+        zone_name: 'A',
+        parking_lot: 3,
+        status: 'occupied',
+      });
+      expect(mockParkingZoneRepository.findOne).toHaveBeenCalledWith({
+        where: { zone_name: 'A' },
+      });
+      expect(mockParkingSlotRepository.findOne).toHaveBeenCalledWith({
+        where: { zone_id: 'zone-1', slot_number: 3 },
+      });
+    });
+
+    it('should throw when zone is not found', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve(null),
+      );
+
+      // Act
+      const action = service.getParkingLotStatus('Z', 1);
+
+      // Assert
+      await expect(action).rejects.toThrow('Zone not found');
+      expect(mockParkingSlotRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should throw when parking lot is not found in the zone', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve({ zone_id: 'zone-1', zone_name: 'A' }),
+      );
+      mockParkingSlotRepository.findOne.mockImplementation(() =>
+        Promise.resolve(null),
+      );
+
+      // Act
+      const action = service.getParkingLotStatus('A', 99);
+
+      // Assert
+      await expect(action).rejects.toThrow('Parking lot not found');
     });
   });
 });

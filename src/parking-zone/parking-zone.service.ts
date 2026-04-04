@@ -7,6 +7,7 @@ import { ParkingSlotModel } from '../common/models/parking-slot.model';
 import { CreateParkingZoneDto } from './dtos/request-create-parking-zone.dto';
 import { CreateParkingZoneResponseDto } from './dtos/response-create-parking-zone.dto';
 import { ParkingZoneAvailableLotsResponseDto } from './dtos/response-parking-zone-available-lots.dto';
+import { ParkingLotStatusResponseDto } from './dtos/response-parking-lot-status.dto';
 
 @Injectable()
 export class ParkingZoneService {
@@ -94,5 +95,35 @@ export class ParkingZoneService {
       available_lots: Number(row.available_lots),
       car_size: row.car_size,
     }));
+  }
+
+  async getParkingLotStatus(
+    zoneName: string,
+    parkingLot: number,
+  ): Promise<ParkingLotStatusResponseDto> {
+    const zone = await this.parkingZone.findOne({
+      where: { zone_name: zoneName },
+    });
+
+    if (!zone) {
+      throw new BadRequestException('Zone not found');
+    }
+
+    const slot = await this.parkingSlot.findOne({
+      where: {
+        zone_id: zone.zone_id,
+        slot_number: parkingLot,
+      },
+    });
+
+    if (!slot) {
+      throw new BadRequestException('Parking lot not found');
+    }
+
+    return {
+      zone_name: zoneName,
+      parking_lot: parkingLot,
+      status: slot.status,
+    };
   }
 }

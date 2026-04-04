@@ -7,8 +7,8 @@ import { LeaveCarDto } from './dtos/request-leave-car.dto';
 import { LeaveCarResponseDto } from './dtos/response-leave-car.dto';
 import { ParkCarService } from './park-car.service';
 
-@Controller('parking-lot')
-@ApiTags('parking-lot')
+@Controller('parking-car')
+@ApiTags('parking-car')
 export class ParkCarController {
   constructor(private readonly parkCarService: ParkCarService) {}
 

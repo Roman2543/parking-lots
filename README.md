@@ -209,10 +209,32 @@ curl -X GET "http://localhost:3000/parking-lot/available-zones"
 }
 ```
 
+### cURL (กรองด้วย optional car_size)
+
+```bash
+curl -X GET "http://localhost:3000/parking-lot/available-zones?car_size=small"
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "Parking zones fetched successfully",
+  "data": [
+    {
+      "zone_name": "A",
+      "available_lots": 3,
+      "car_size": "small"
+    }
+  ]
+}
+```
+
 ### 3) Park Vehicle
 
 - Method: `POST`
-- Path: `/parking-lot/park`
+- Path: `/parking-car/park`
 
 Request Body:
 
@@ -221,6 +243,17 @@ Request Body:
   "plate_number": "1กข1234",
   "car_size": "small"
 }
+```
+
+### cURL (success)
+
+```bash
+curl -X POST "http://localhost:3000/parking-car/park" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "plate_number": "1กข1234",
+    "car_size": "small"
+  }'
 ```
 
 ตัวอย่าง Success Response:
@@ -250,10 +283,27 @@ Request Body:
 }
 ```
 
-### cURL (กรองด้วย optional car_size)
+### 4) Leave Parking
+
+- Method: `POST`
+- Path: `/parking-car/leave`
+
+Request Body:
+
+```json
+{
+  "plate_number": "1กข1234"
+}
+```
+
+### cURL (success)
 
 ```bash
-curl -X GET "http://localhost:3000/parking-lot/available-zones?car_size=small"
+curl -X POST "http://localhost:3000/parking-car/leave" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "plate_number": "1กข1234"
+  }'
 ```
 
 ตัวอย่าง Success Response:
@@ -261,14 +311,70 @@ curl -X GET "http://localhost:3000/parking-lot/available-zones?car_size=small"
 ```json
 {
   "code": "200",
-  "message": "Parking zones fetched successfully",
-  "data": [
-    {
-      "zone_name": "A",
-      "available_lots": 3,
-      "car_size": "small"
-    }
-  ]
+  "message": "Car left successfully",
+  "data": {
+    "plate_number": "1กข1234",
+    "slot_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "status": "left"
+  }
+}
+```
+
+ตัวอย่าง Error Response:
+
+```json
+{
+  "code": "400",
+  "message": "This vehicle is not currently parked.",
+  "data": null
+}
+```
+
+### 5) Get Parking Lot Status
+
+- Method: `GET`
+- Path: `/parking-lot/status`
+- Query (required):
+  - `zone_name` เช่น `A`
+  - `parking_lot` เช่น `1`
+
+### cURL (success)
+
+```bash
+curl -X GET "http://localhost:3000/parking-lot/status?zone_name=A&parking_lot=1"
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "Parking lot status fetched successfully",
+  "data": {
+    "zone_name": "A",
+    "parking_lot": 1,
+    "status": "available"
+  }
+}
+```
+
+ตัวอย่าง Error Response (zone ไม่พบ):
+
+```json
+{
+  "code": "400",
+  "message": "Zone not found",
+  "data": null
+}
+```
+
+ตัวอย่าง Error Response (lot ไม่พบในโซน):
+
+```json
+{
+  "code": "400",
+  "message": "Parking lot not found",
+  "data": null
 }
 ```
 

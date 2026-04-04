@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ParkingZoneController } from '../parking-zone.controller';
 import { CreateParkingZoneDto } from '../dtos/request-create-parking-zone.dto';
 import { GetParkingZonesDto } from '../dtos/request-get-parking-zones.dto';
+import { BadRequestException } from '@nestjs/common';
+import { GetParkingLotStatusDto } from '../dtos/request-get-parking-lot-status.dto';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(),
@@ -13,6 +15,7 @@ describe('ParkingZoneController', () => {
   const mockParkingZoneService = {
     createZoneWithSlots: jest.fn() as jest.Mock,
     getParkingZonesAvailableLots: jest.fn() as jest.Mock,
+    getParkingLotStatus: jest.fn() as jest.Mock,
   };
 
   beforeEach(() => {
@@ -103,6 +106,46 @@ describe('ParkingZoneController', () => {
       expect(
         mockParkingZoneService.getParkingZonesAvailableLots,
       ).toHaveBeenCalledWith('small');
+    });
+  });
+
+  describe('getParkingLotStatus', () => {
+    it('should return parking lot status by zone name and lot number', async () => {
+      // Arrange
+      const query: GetParkingLotStatusDto = { zone_name: 'A', parking_lot: 3 };
+      const serviceResult = {
+        zone_name: 'A',
+        parking_lot: 3,
+        status: 'occupied',
+      };
+
+      mockParkingZoneService.getParkingLotStatus.mockImplementation(() =>
+        Promise.resolve(serviceResult),
+      );
+
+      // Act
+      const result = await controller.getParkingLotStatus(query);
+
+      // Assert
+      expect(result).toEqual(serviceResult);
+      expect(mockParkingZoneService.getParkingLotStatus).toHaveBeenCalledWith(
+        'A',
+        3,
+      );
+    });
+
+    it('should propagate error when parking lot status lookup fails', async () => {
+      // Arrange
+      const query: GetParkingLotStatusDto = { zone_name: 'Z', parking_lot: 1 };
+      mockParkingZoneService.getParkingLotStatus.mockImplementation(() =>
+        Promise.reject(new BadRequestException('Zone not found')),
+      );
+
+      // Act
+      const action = controller.getParkingLotStatus(query);
+
+      // Assert
+      await expect(action).rejects.toThrow('Zone not found');
     });
   });
 });
