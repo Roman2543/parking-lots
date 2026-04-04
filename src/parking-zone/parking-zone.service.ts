@@ -4,6 +4,9 @@ import { DataSource, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { ParkingZoneModel } from './models/parking-zone.model';
 import { ParkingSlotModel } from './models/parking-slot.model';
+import { CreateParkingZoneDto } from './dtos/request-create-parking-zone.dto';
+import { CreateParkingZoneResponseDto } from './dtos/response-create-parking-zone.dto';
+import { ParkingZoneAvailableLotsResponseDto } from './dtos/response-parking-zone-available-lots.dto';
 
 @Injectable()
 export class ParkingZoneService {
@@ -16,10 +19,10 @@ export class ParkingZoneService {
   ) {}
 
   async createZoneWithSlots(
-    zone_name: string,
-    parking_space: number,
-    car_size: string,
-  ): Promise<{ zone_name: string; total_slots: number; car_size: string }> {
+    dto: CreateParkingZoneDto,
+  ): Promise<CreateParkingZoneResponseDto> {
+    const { zone_name, parking_space, car_size } = dto;
+
     const existingZone = await this.parkingZone.findOne({
       where: { zone_name },
     });
@@ -57,5 +60,39 @@ export class ParkingZoneService {
       total_slots: parking_space,
       car_size,
     };
+  }
+
+  async getParkingZonesAvailableLots(
+    car_size?: string,
+  ): Promise<ParkingZoneAvailableLotsResponseDto[]> {
+    const rows = await this.parkingZone
+      .createQueryBuilder('zone')
+      .leftJoin(
+        ParkingSlotModel,
+        'slot',
+        'slot.zone_id = zone.zone_id AND slot.status = :status',
+        { status: 'available' },
+      )
+      .where(':car_size IS NULL OR zone.car_size = :car_size', {
+        car_size: car_size ?? null,
+      })
+      .select('zone.zone_name', 'zone_name')
+      .addSelect('zone.car_size', 'car_size')
+      .addSelect('COUNT(slot.slot_id)', 'available_lots')
+      .groupBy('zone.zone_id')
+      .addGroupBy('zone.zone_name')
+      .addGroupBy('zone.car_size')
+      .orderBy('zone.zone_name', 'ASC')
+      .getRawMany<{
+        zone_name: string;
+        available_lots: string;
+        car_size: string;
+      }>();
+
+    return rows.map((row) => ({
+      zone_name: row.zone_name,
+      available_lots: Number(row.available_lots),
+      car_size: row.car_size,
+    }));
   }
 }

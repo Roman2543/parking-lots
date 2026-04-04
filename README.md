@@ -14,7 +14,7 @@ Backend service สำหรับจัดการลานจอดรถ พ
 ### 1) ติดตั้ง dependencies
 
 ```bash
-npm install
+yarn install
 ```
 
 ### 2) รันฐานข้อมูลด้วย Docker
@@ -26,7 +26,7 @@ docker compose up -d
 ### 3) รัน API
 
 ```bash
-npm run start:dev
+yarn start:dev
 ```
 
 ค่าเริ่มต้นของเซิร์ฟเวอร์:
@@ -163,6 +163,61 @@ curl -X POST "http://localhost:3000/parking-lot/create" \
 }
 ```
 
+### 2) Get Available Parking Zones
+
+- Method: `GET`
+- Path: `/parking-lot/available-zones`
+- Query (optional): `car_size=small|medium|large`
+
+### cURL (ทั้งหมด)
+
+```bash
+curl -X GET "http://localhost:3000/parking-lot/available-zones"
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "Parking zones fetched successfully",
+  "data": [
+    {
+      "zone_name": "A",
+      "available_lots": 3,
+      "car_size": "small"
+    },
+    {
+      "zone_name": "B",
+      "available_lots": 1,
+      "car_size": "large"
+    }
+  ]
+}
+```
+
+### cURL (กรองด้วย optional car_size)
+
+```bash
+curl -X GET "http://localhost:3000/parking-lot/available-zones?car_size=small"
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "Parking zones fetched successfully",
+  "data": [
+    {
+      "zone_name": "A",
+      "available_lots": 3,
+      "car_size": "small"
+    }
+  ]
+}
+```
+
 ## Database Structure
 
 สคริปต์เริ่มต้นอยู่ที่ `docker/mssql/init.sql`
@@ -216,3 +271,9 @@ curl -X POST "http://localhost:3000/parking-lot/create" \
 
 - โปรเจกต์ตั้งค่า `synchronize: false` ดังนั้นโครงสร้างตารางใช้จาก SQL init script
 - หากเปลี่ยน schema เพิ่มเติม ให้แก้ `docker/mssql/init.sql` และ re-init database
+
+## Test
+
+```bash
+yarn test
+```

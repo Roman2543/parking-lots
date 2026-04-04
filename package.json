@@ -65,11 +65,38 @@
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
+    "testPathIgnorePatterns": [
+      "/dtos?/",
+      "/decorators/",
+      "/filters/",
+      "/interceptors/",
+      "main\\.ts$",
+      "app\\.ts$",
+      "config\\.ts$"
+    ],
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.dto.ts",
+      "!**/*module.ts",
+      "!**/dtos/**",
+      "!**/main.ts",
+      "!**/app.ts",
+      "!**/*config*.ts",
+      "!**/decorators/**",
+      "!**/filters/**",
+      "!**/interceptors/**"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/dtos?/",
+      "/decorators/",
+      "/filters/",
+      "/interceptors/",
+      "main\\.ts$",
+      "app\\.ts$",
+      "config\\.ts$"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

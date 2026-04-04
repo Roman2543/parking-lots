@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ParkingZoneService } from '../parking-zone.service';
 import { ParkingZoneModel } from '../models/parking-zone.model';
 import { ParkingSlotModel } from '../models/parking-slot.model';
+import { CreateParkingZoneDto } from '../dtos/request-create-parking-zone.dto';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(),
@@ -18,6 +19,7 @@ describe('ParkingZoneService', () => {
   const mockParkingZoneRepository = {
     findOne: jest.fn() as jest.Mock,
     create: jest.fn() as jest.Mock,
+    createQueryBuilder: jest.fn() as jest.Mock,
   };
 
   /**
@@ -53,9 +55,11 @@ describe('ParkingZoneService', () => {
 
   it('should create parking zone and slots with AAA pattern', async () => {
     // Arrange
-    const zoneName = 'A';
-    const parkingSpace = 2;
-    const carSize = 'small';
+    const dto: CreateParkingZoneDto = {
+      zone_name: 'A',
+      parking_space: 2,
+      car_size: 'small',
+    };
 
     mockParkingZoneRepository.findOne.mockImplementation(() =>
       Promise.resolve(null),
@@ -86,11 +90,7 @@ describe('ParkingZoneService', () => {
     });
 
     // Act
-    const result = await service.createZoneWithSlots(
-      zoneName,
-      parkingSpace,
-      carSize,
-    );
+    const result = await service.createZoneWithSlots(dto);
 
     // Assert
     expect(result.zone_name).toEqual('A');
@@ -132,10 +132,85 @@ describe('ParkingZoneService', () => {
     );
 
     // Act
-    const action = service.createZoneWithSlots('A', 1, 'small');
+    const action = service.createZoneWithSlots({
+      zone_name: 'A',
+      parking_space: 1,
+      car_size: 'small',
+    });
 
     // Assert
     await expect(action).rejects.toThrow('Zone name already exists');
     expect(mockDataSource.transaction).not.toHaveBeenCalled();
+  });
+
+  it('should return parking zones with available lots when car_size is not provided', async () => {
+    // Arrange
+    const mockRows = [
+      { zone_name: 'A', available_lots: '3', car_size: 'small' },
+      { zone_name: 'B', available_lots: '1', car_size: 'large' },
+    ];
+
+    const queryBuilder = {
+      leftJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      addGroupBy: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockImplementation(() => Promise.resolve(mockRows)),
+    };
+
+    mockParkingZoneRepository.createQueryBuilder.mockReturnValue(queryBuilder);
+
+    // Act
+    const result = await service.getParkingZonesAvailableLots();
+
+    // Assert
+    expect(result).toEqual([
+      { zone_name: 'A', available_lots: 3, car_size: 'small' },
+      { zone_name: 'B', available_lots: 1, car_size: 'large' },
+    ]);
+    expect(mockParkingZoneRepository.createQueryBuilder).toHaveBeenCalledWith(
+      'zone',
+    );
+    expect(queryBuilder.where).toHaveBeenCalledWith(
+      ':car_size IS NULL OR zone.car_size = :car_size',
+      { car_size: null },
+    );
+    expect(queryBuilder.getRawMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return filtered parking zones when optional car_size is provided', async () => {
+    // Arrange
+    const mockRows = [
+      { zone_name: 'A', available_lots: '2', car_size: 'small' },
+    ];
+
+    const queryBuilder = {
+      leftJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      addGroupBy: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockImplementation(() => Promise.resolve(mockRows)),
+    };
+
+    mockParkingZoneRepository.createQueryBuilder.mockReturnValue(queryBuilder);
+
+    // Act
+    const result = await service.getParkingZonesAvailableLots('small');
+
+    // Assert
+    expect(result).toEqual([
+      { zone_name: 'A', available_lots: 2, car_size: 'small' },
+    ]);
+    expect(queryBuilder.where).toHaveBeenCalledWith(
+      ':car_size IS NULL OR zone.car_size = :car_size',
+      { car_size: 'small' },
+    );
+    expect(queryBuilder.getRawMany).toHaveBeenCalledTimes(1);
   });
 });
