@@ -6,8 +6,12 @@ import { ParkingZoneModel } from '../common/models/parking-zone.model';
 import { ParkingSlotModel } from '../common/models/parking-slot.model';
 import { VehicleModel } from '../common/models/vehicle.model';
 import { VehicleLogModel } from '../common/models/vehicle-log.model';
+import { VehicleStatus } from '../common/enums/vehicle-status.enum';
+import { VehicleLogEventType } from '../common/enums/vehicle-log-event-type.enum';
 import { ParkCarDto } from './dtos/request-park-car.dto';
 import { ParkCarResponseDto } from './dtos/response-park-car.dto';
+import { LeaveCarDto } from './dtos/request-leave-car.dto';
+import { LeaveCarResponseDto } from './dtos/response-leave-car.dto';
 import { AvailableSlotDto } from './dtos/available-slot.dto';
 import { VehicleLogContextDto } from './dtos/vehicle-log-context.dto';
 
@@ -64,7 +68,51 @@ export class ParkCarService {
       slot_id: parkedSlot.slot_id,
       zone_name: parkedSlot.zone_name,
       slot_number: Number(parkedSlot.slot_number),
-      status: 'parked',
+      status: VehicleStatus.PARKED,
+    };
+  }
+
+  async leaveCar(body: LeaveCarDto): Promise<LeaveCarResponseDto> {
+    const { plate_number } = body;
+    let leftSlotId = '';
+
+    await this.dataSource.transaction(async (manager) => {
+      // 1. Check vehicle and ensure it is currently parked
+      const existingVehicle = await this.getVehicleByPlate(
+        manager,
+        plate_number,
+      );
+
+      if (!existingVehicle) {
+        throw new BadRequestException('Vehicle not found');
+      }
+
+      this.ensureVehicleIsParkedForLeaving(existingVehicle);
+
+      // 2. Release the currently occupied slot
+      const slotId = existingVehicle.current_slot_id;
+      await this.releaseOccupiedSlot(manager, slotId);
+
+      // 3. Update vehicle status and write leave log
+      const oldStatus = existingVehicle.status;
+      existingVehicle.current_slot_id = null;
+      existingVehicle.status = VehicleStatus.LEFT;
+      await manager.save(VehicleModel, existingVehicle);
+
+      await this.saveLeftLog(
+        manager,
+        existingVehicle.vehicle_id,
+        slotId,
+        oldStatus,
+      );
+
+      leftSlotId = slotId;
+    });
+
+    return {
+      plate_number,
+      slot_id: leftSlotId,
+      status: VehicleStatus.LEFT,
     };
   }
 
@@ -78,8 +126,17 @@ export class ParkCarService {
   }
 
   private ensureVehicleIsNotParked(vehicle: VehicleModel | null): void {
-    if (vehicle?.status === 'parked') {
+    if (vehicle?.status === VehicleStatus.PARKED.toString()) {
       throw new BadRequestException('This vehicle is already parked.');
+    }
+  }
+
+  private ensureVehicleIsParkedForLeaving(vehicle: VehicleModel): void {
+    if (
+      vehicle.status !== VehicleStatus.PARKED.toString() ||
+      !vehicle.current_slot_id
+    ) {
+      throw new BadRequestException('This vehicle is not currently parked.');
     }
   }
 
@@ -127,6 +184,23 @@ export class ParkCarService {
     }
   }
 
+  private async releaseOccupiedSlot(
+    manager: EntityManager,
+    slotId: string,
+  ): Promise<void> {
+    const updateSlotResult = await manager.update(
+      ParkingSlotModel,
+      { slot_id: slotId, status: 'occupied' },
+      { status: 'available' },
+    );
+
+    if (!updateSlotResult.affected) {
+      throw new BadRequestException(
+        'Selected parking slot is no longer occupied',
+      );
+    }
+  }
+
   private async upsertVehicleForParking(
     manager: EntityManager,
     existingVehicle: VehicleModel | null,
@@ -138,7 +212,7 @@ export class ParkCarService {
       const oldStatus = existingVehicle.status;
       existingVehicle.car_size = carSize;
       existingVehicle.current_slot_id = slotId;
-      existingVehicle.status = 'parked';
+      existingVehicle.status = VehicleStatus.PARKED;
       await manager.save(VehicleModel, existingVehicle);
 
       return {
@@ -152,7 +226,7 @@ export class ParkCarService {
       plate_number: plateNumber,
       car_size: carSize,
       current_slot_id: slotId,
-      status: 'parked',
+      status: VehicleStatus.PARKED,
     });
 
     await manager.save(VehicleModel, newVehicle);
@@ -169,14 +243,51 @@ export class ParkCarService {
     slotId: string,
     oldStatus: string | null,
   ): Promise<void> {
+    await this.addVehicleLog(
+      manager,
+      vehicleId,
+      slotId,
+      VehicleLogEventType.PARKED,
+      oldStatus,
+      VehicleStatus.PARKED,
+      'Vehicle parked',
+    );
+  }
+
+  private async saveLeftLog(
+    manager: EntityManager,
+    vehicleId: string,
+    slotId: string,
+    oldStatus: string,
+  ): Promise<void> {
+    await this.addVehicleLog(
+      manager,
+      vehicleId,
+      slotId,
+      VehicleLogEventType.LEFT,
+      oldStatus,
+      VehicleStatus.LEFT,
+      'Vehicle left',
+    );
+  }
+
+  private async addVehicleLog(
+    manager: EntityManager,
+    vehicleId: string,
+    slotId: string,
+    eventType: VehicleLogEventType,
+    oldStatus: string | null,
+    newStatus: VehicleStatus,
+    log_note: string,
+  ): Promise<void> {
     const vehicleLog = {
       vehicle_log_id: uuidv4(),
       vehicle_id: vehicleId,
       slot_id: slotId,
-      event_type: 'parked',
+      event_type: eventType,
       old_status: oldStatus,
-      new_status: 'parked',
-      note: 'Vehicle parked',
+      new_status: newStatus,
+      note: log_note,
     };
 
     await manager.save(VehicleLogModel, vehicleLog);
