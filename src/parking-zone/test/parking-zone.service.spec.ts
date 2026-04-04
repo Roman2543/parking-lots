@@ -3,6 +3,7 @@ import { ParkingZoneService } from '../parking-zone.service';
 import { ParkingZoneModel } from '../../common/models/parking-zone.model';
 import { ParkingSlotModel } from '../../common/models/parking-slot.model';
 import { CreateParkingZoneDto } from '../dtos/request-create-parking-zone.dto';
+import { ActivationStatus } from '../../common/enums/activation-status.enum';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(),
@@ -20,6 +21,7 @@ describe('ParkingZoneService', () => {
     findOne: jest.fn() as jest.Mock,
     create: jest.fn() as jest.Mock,
     createQueryBuilder: jest.fn() as jest.Mock,
+    save: jest.fn() as jest.Mock,
   };
 
   /**
@@ -28,6 +30,9 @@ describe('ParkingZoneService', () => {
   const mockParkingSlotRepository = {
     create: jest.fn() as jest.Mock,
     findOne: jest.fn() as jest.Mock,
+    count: jest.fn() as jest.Mock,
+    update: jest.fn() as jest.Mock,
+    save: jest.fn() as jest.Mock,
   };
 
   /**
@@ -107,20 +112,20 @@ describe('ParkingZoneService', () => {
         zone_id: 'zone-uuid-1',
         zone_name: 'A',
         car_size: 'small',
-        status: 'active',
+        status: ActivationStatus.ACTIVE,
       });
       expect(mockManager.save).toHaveBeenCalledWith(ParkingSlotModel, [
         {
           slot_id: 'slot-uuid-1',
           zone_id: 'zone-uuid-1',
           slot_number: 1,
-          status: 'available',
+          status: ActivationStatus.AVAILABLE,
         },
         {
           slot_id: 'slot-uuid-2',
           zone_id: 'zone-uuid-1',
           slot_number: 2,
-          status: 'available',
+          status: ActivationStatus.AVAILABLE,
         },
       ]);
     });
@@ -131,7 +136,7 @@ describe('ParkingZoneService', () => {
         Promise.resolve({
           zone_id: 'existing-zone-id',
           zone_name: 'A',
-          status: 'active',
+          status: ActivationStatus.ACTIVE,
         }),
       );
 
@@ -159,6 +164,7 @@ describe('ParkingZoneService', () => {
       const queryBuilder = {
         leftJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         groupBy: jest.fn().mockReturnThis(),
@@ -188,6 +194,10 @@ describe('ParkingZoneService', () => {
         ':car_size IS NULL OR zone.car_size = :car_size',
         { car_size: null },
       );
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'zone.status = :zoneStatus',
+        { zoneStatus: ActivationStatus.ACTIVE },
+      );
       expect(queryBuilder.getRawMany).toHaveBeenCalledTimes(1);
     });
 
@@ -200,6 +210,7 @@ describe('ParkingZoneService', () => {
       const queryBuilder = {
         leftJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         groupBy: jest.fn().mockReturnThis(),
@@ -225,6 +236,10 @@ describe('ParkingZoneService', () => {
         ':car_size IS NULL OR zone.car_size = :car_size',
         { car_size: 'small' },
       );
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'zone.status = :zoneStatus',
+        { zoneStatus: ActivationStatus.ACTIVE },
+      );
       expect(queryBuilder.getRawMany).toHaveBeenCalledTimes(1);
     });
   });
@@ -233,14 +248,18 @@ describe('ParkingZoneService', () => {
     it('should return parking lot status when zone and lot exist', async () => {
       // Arrange
       mockParkingZoneRepository.findOne.mockImplementation(() =>
-        Promise.resolve({ zone_id: 'zone-1', zone_name: 'A' }),
+        Promise.resolve({
+          zone_id: 'zone-1',
+          zone_name: 'A',
+          status: ActivationStatus.ACTIVE,
+        }),
       );
       mockParkingSlotRepository.findOne.mockImplementation(() =>
         Promise.resolve({
           slot_id: 'slot-3',
           zone_id: 'zone-1',
           slot_number: 3,
-          status: 'occupied',
+          status: ActivationStatus.OCCUPIED,
         }),
       );
 
@@ -251,10 +270,10 @@ describe('ParkingZoneService', () => {
       expect(result).toEqual({
         zone_name: 'A',
         parking_lot: 3,
-        status: 'occupied',
+        status: ActivationStatus.OCCUPIED,
       });
       expect(mockParkingZoneRepository.findOne).toHaveBeenCalledWith({
-        where: { zone_name: 'A' },
+        where: { zone_name: 'A', status: ActivationStatus.ACTIVE },
       });
       expect(mockParkingSlotRepository.findOne).toHaveBeenCalledWith({
         where: { zone_id: 'zone-1', slot_number: 3 },
@@ -278,7 +297,11 @@ describe('ParkingZoneService', () => {
     it('should throw when parking lot is not found in the zone', async () => {
       // Arrange
       mockParkingZoneRepository.findOne.mockImplementation(() =>
-        Promise.resolve({ zone_id: 'zone-1', zone_name: 'A' }),
+        Promise.resolve({
+          zone_id: 'zone-1',
+          zone_name: 'A',
+          status: ActivationStatus.ACTIVE,
+        }),
       );
       mockParkingSlotRepository.findOne.mockImplementation(() =>
         Promise.resolve(null),
@@ -289,6 +312,144 @@ describe('ParkingZoneService', () => {
 
       // Assert
       await expect(action).rejects.toThrow('Parking lot not found');
+    });
+  });
+
+  describe('updateParkingZoneStatus', () => {
+    it('should update parking zone to inactive and mark all slots inactive', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve({
+          zone_id: 'zone-1',
+          zone_name: 'A',
+          status: ActivationStatus.ACTIVE,
+        }),
+      );
+      mockParkingSlotRepository.count.mockImplementation(() =>
+        Promise.resolve(0),
+      );
+      mockParkingSlotRepository.update.mockImplementation(() =>
+        Promise.resolve(undefined),
+      );
+      mockParkingZoneRepository.save.mockImplementation((value) =>
+        Promise.resolve(value),
+      );
+
+      // Act
+      const result = await service.updateParkingZoneStatus({
+        zone_name: 'A',
+        status: ActivationStatus.INACTIVE,
+      });
+
+      // Assert
+      expect(result).toEqual({
+        zone_name: 'A',
+        status: ActivationStatus.INACTIVE,
+      });
+      expect(mockParkingSlotRepository.count).toHaveBeenCalledWith({
+        where: { zone_id: 'zone-1', status: ActivationStatus.OCCUPIED },
+      });
+      expect(mockParkingSlotRepository.update).toHaveBeenCalledWith(
+        { zone_id: 'zone-1' },
+        { status: ActivationStatus.INACTIVE },
+      );
+    });
+
+    it('should throw when setting zone inactive while some slot is occupied', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve({
+          zone_id: 'zone-1',
+          zone_name: 'A',
+          status: ActivationStatus.ACTIVE,
+        }),
+      );
+      mockParkingSlotRepository.count.mockImplementation(() =>
+        Promise.resolve(1),
+      );
+
+      // Act
+      const action = service.updateParkingZoneStatus({
+        zone_name: 'A',
+        status: ActivationStatus.INACTIVE,
+      });
+
+      // Assert
+      await expect(action).rejects.toThrow(
+        'Cannot set zone inactive while slots are occupied',
+      );
+    });
+  });
+
+  describe('updateParkingLotStatus', () => {
+    it('should update parking slot status to available when setting active', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve({
+          zone_id: 'zone-1',
+          zone_name: 'A',
+          status: ActivationStatus.ACTIVE,
+        }),
+      );
+      mockParkingSlotRepository.findOne.mockImplementation(() =>
+        Promise.resolve({
+          slot_id: 'slot-1',
+          zone_id: 'zone-1',
+          slot_number: 1,
+          status: ActivationStatus.INACTIVE,
+        }),
+      );
+      mockParkingSlotRepository.save.mockImplementation((value) =>
+        Promise.resolve(value),
+      );
+
+      // Act
+      const result = await service.updateParkingLotStatus({
+        zone_name: 'A',
+        parking_lot: 1,
+        status: ActivationStatus.ACTIVE,
+      });
+
+      // Assert
+      expect(result).toEqual({
+        zone_name: 'A',
+        parking_lot: 1,
+        status: ActivationStatus.ACTIVE,
+      });
+    });
+
+    it('should throw when setting occupied slot to inactive', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve({
+          zone_id: 'zone-1',
+          zone_name: 'A',
+          status: ActivationStatus.ACTIVE,
+        }),
+      );
+      mockParkingSlotRepository.findOne.mockImplementation(() =>
+        Promise.resolve({
+          slot_id: 'slot-1',
+          zone_id: 'zone-1',
+          slot_number: 1,
+          status: ActivationStatus.OCCUPIED,
+        }),
+      );
+      mockParkingSlotRepository.count.mockImplementation(() =>
+        Promise.resolve(1),
+      );
+
+      // Act
+      const action = service.updateParkingLotStatus({
+        zone_name: 'A',
+        parking_lot: 1,
+        status: ActivationStatus.INACTIVE,
+      });
+
+      // Assert
+      await expect(action).rejects.toThrow(
+        'Cannot set occupied slot to inactive',
+      );
     });
   });
 });

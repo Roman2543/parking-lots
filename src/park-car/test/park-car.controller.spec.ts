@@ -12,6 +12,7 @@ import { LeaveCarDto } from '../dtos/request-leave-car.dto';
 import { ParkCarResponseDto } from '../dtos/response-park-car.dto';
 import { GetListByCarSizeDto } from '../dtos/request-get-list.dto';
 import { ListByCarSizeType } from '../../common/enums/list-by-car-size-type.enum';
+import { ActivationStatus } from '../../common/enums/activation-status.enum';
 
 describe('ParkCarController', () => {
   let controller: ParkCarController;
@@ -173,8 +174,16 @@ describe('ParkCarController', () => {
         field: ListByCarSizeType.PARKING_SLOT,
         car_size: 'small',
         parking_slots: [
-          { zone_name: 'A', slot_number: 1, status: 'available' },
-          { zone_name: 'A', slot_number: 2, status: 'occupied' },
+          {
+            zone_name: 'A',
+            slot_number: 1,
+            status: ActivationStatus.AVAILABLE,
+          },
+          {
+            zone_name: 'A',
+            slot_number: 2,
+            status: ActivationStatus.OCCUPIED,
+          },
         ],
       };
       mockParkCarService.getListByCarSize.mockImplementation(() =>

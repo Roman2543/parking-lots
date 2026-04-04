@@ -378,7 +378,92 @@ curl -X GET "http://localhost:3000/parking-lot/status?zone_name=A&parking_lot=1"
 }
 ```
 
-### 6) Get List By Car Size
+หมายเหตุ:
+
+- API ดึงข้อมูลโซน/ช่องจอดจะดึงจาก `parking zone` ที่มีสถานะ `active` เท่านั้น
+
+### 6) Update Parking Zone Status
+
+- Method: `PATCH`
+- Path: `/parking-lot/zone-status`
+- Request body:
+  - `zone_name`: string (required)
+  - `status`: `active | inactive`
+
+### cURL (update parking zone status)
+
+```bash
+curl -X PATCH "http://localhost:3000/parking-lot/zone-status" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "zone_name": "A",
+    "status": "inactive"
+  }'
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "Parking zone status updated successfully",
+  "data": {
+    "zone_name": "A",
+    "status": "inactive"
+  }
+}
+```
+
+หมายเหตุ:
+
+- เมื่อ update `zone` เป็น `inactive` ระบบจะอัปเดต lots ทั้งโซนเป็น `inactive` ด้วย
+
+### 7) Update Parking Lot Status
+
+- Method: `PATCH`
+- Path: `/parking-lot/lot-status`
+- Request body:
+  - `zone_name`: string (required)
+  - `parking_lot`: number (required)
+  - `status`: `active | inactive`
+
+### cURL (update parking lot status)
+
+```bash
+curl -X PATCH "http://localhost:3000/parking-lot/lot-status" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "zone_name": "A",
+    "parking_lot": 1,
+    "status": "active"
+  }'
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "Parking lot status updated successfully",
+  "data": {
+    "zone_name": "A",
+    "parking_lot": 1,
+    "status": "active"
+  }
+}
+```
+
+ตัวอย่าง Error Response:
+
+```json
+{
+  "code": "400",
+  "message": "Cannot set occupied slot to inactive",
+  "data": null
+}
+```
+
+### 8) Get List By Car Size
 
 - Method: `GET`
 - Path: `/parking-car/list`

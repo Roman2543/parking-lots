@@ -7,6 +7,7 @@ import { ParkingSlotModel } from '../../common/models/parking-slot.model';
 import { ParkCarDto } from '../dtos/request-park-car.dto';
 import { LeaveCarDto } from '../dtos/request-leave-car.dto';
 import { ListByCarSizeType } from '../../common/enums/list-by-car-size-type.enum';
+import { ActivationStatus } from '../../common/enums/activation-status.enum';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(),
@@ -105,8 +106,8 @@ describe('ParkCarService', () => {
       });
       expect(mockManager.update).toHaveBeenCalledWith(
         ParkingSlotModel,
-        { slot_id: 'slot-1', status: 'available' },
-        { status: 'occupied' },
+        { slot_id: 'slot-1', status: ActivationStatus.AVAILABLE },
+        { status: ActivationStatus.OCCUPIED },
       );
       expect(mockManager.save).toHaveBeenCalledWith(VehicleModel, {
         vehicle_id: 'vehicle-uuid-1',
@@ -347,8 +348,8 @@ describe('ParkCarService', () => {
       });
       expect(mockManager.update).toHaveBeenCalledWith(
         ParkingSlotModel,
-        { slot_id: 'slot-1', status: 'occupied' },
-        { status: 'available' },
+        { slot_id: 'slot-1', status: ActivationStatus.OCCUPIED },
+        { status: ActivationStatus.AVAILABLE },
       );
       expect(mockManager.save).toHaveBeenCalledWith(VehicleModel, {
         vehicle_id: 'vehicle-1',
@@ -506,15 +507,28 @@ describe('ParkCarService', () => {
         from: jest.fn().mockReturnThis(),
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         addOrderBy: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockImplementation(() =>
           Promise.resolve([
-            { zone_name: 'A', slot_number: '1', status: 'available' },
-            { zone_name: 'A', slot_number: '2', status: 'occupied' },
-            { zone_name: 'B', slot_number: '1', status: 'inactive' },
+            {
+              zone_name: 'A',
+              slot_number: '1',
+              status: ActivationStatus.AVAILABLE,
+            },
+            {
+              zone_name: 'A',
+              slot_number: '2',
+              status: ActivationStatus.OCCUPIED,
+            },
+            {
+              zone_name: 'B',
+              slot_number: '1',
+              status: ActivationStatus.INACTIVE,
+            },
           ]),
         ),
       };
@@ -531,9 +545,21 @@ describe('ParkCarService', () => {
         field: ListByCarSizeType.PARKING_SLOT,
         car_size: 'small',
         parking_slots: [
-          { zone_name: 'A', slot_number: 1, status: 'available' },
-          { zone_name: 'A', slot_number: 2, status: 'occupied' },
-          { zone_name: 'B', slot_number: 1, status: 'inactive' },
+          {
+            zone_name: 'A',
+            slot_number: 1,
+            status: ActivationStatus.AVAILABLE,
+          },
+          {
+            zone_name: 'A',
+            slot_number: 2,
+            status: ActivationStatus.OCCUPIED,
+          },
+          {
+            zone_name: 'B',
+            slot_number: 1,
+            status: ActivationStatus.INACTIVE,
+          },
         ],
       });
       expect(listQueryBuilder.orderBy).toHaveBeenCalledWith(
@@ -543,6 +569,10 @@ describe('ParkCarService', () => {
       expect(listQueryBuilder.addOrderBy).toHaveBeenCalledWith(
         'slot.slot_number',
         'ASC',
+      );
+      expect(listQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'zone.status = :zoneStatus',
+        { zoneStatus: ActivationStatus.ACTIVE },
       );
     });
   });

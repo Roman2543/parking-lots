@@ -1,13 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ActivationStatus } from '../../common/enums/activation-status.enum';
 
-export class ParkingLotStatusResponseDto {
+export class UpdateParkingLotStatusResponseDto {
   @ApiProperty({ example: 'A' })
   zone_name: string;
 
   @ApiProperty({ example: 1 })
   parking_lot: number;
 
-  @ApiProperty({ enum: ActivationStatus, example: ActivationStatus.AVAILABLE })
-  status: string;
+  @ApiProperty({ enum: ActivationStatus })
+  status: ActivationStatus;
 }

@@ -4,6 +4,9 @@ import { CreateParkingZoneDto } from '../dtos/request-create-parking-zone.dto';
 import { GetParkingZonesDto } from '../dtos/request-get-parking-zones.dto';
 import { BadRequestException } from '@nestjs/common';
 import { GetParkingLotStatusDto } from '../dtos/request-get-parking-lot-status.dto';
+import { UpdateParkingZoneStatusDto } from '../dtos/request-update-parking-zone-status.dto';
+import { UpdateParkingLotStatusDto } from '../dtos/request-update-parking-lot-status.dto';
+import { ActivationStatus } from '../../common/enums/activation-status.enum';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(),
@@ -16,6 +19,8 @@ describe('ParkingZoneController', () => {
     createZoneWithSlots: jest.fn() as jest.Mock,
     getParkingZonesAvailableLots: jest.fn() as jest.Mock,
     getParkingLotStatus: jest.fn() as jest.Mock,
+    updateParkingZoneStatus: jest.fn() as jest.Mock,
+    updateParkingLotStatus: jest.fn() as jest.Mock,
   };
 
   beforeEach(() => {
@@ -116,7 +121,7 @@ describe('ParkingZoneController', () => {
       const serviceResult = {
         zone_name: 'A',
         parking_lot: 3,
-        status: 'occupied',
+        status: ActivationStatus.OCCUPIED,
       };
 
       mockParkingZoneService.getParkingLotStatus.mockImplementation(() =>
@@ -146,6 +151,62 @@ describe('ParkingZoneController', () => {
 
       // Assert
       await expect(action).rejects.toThrow('Zone not found');
+    });
+  });
+
+  describe('updateParkingZoneStatus', () => {
+    it('should update parking zone status', async () => {
+      // Arrange
+      const body: UpdateParkingZoneStatusDto = {
+        zone_name: 'A',
+        status: ActivationStatus.INACTIVE,
+      };
+      const serviceResult = {
+        zone_name: 'A',
+        status: ActivationStatus.INACTIVE,
+      };
+
+      mockParkingZoneService.updateParkingZoneStatus.mockImplementation(() =>
+        Promise.resolve(serviceResult),
+      );
+
+      // Act
+      const result = await controller.updateParkingZoneStatus(body);
+
+      // Assert
+      expect(result).toEqual(serviceResult);
+      expect(
+        mockParkingZoneService.updateParkingZoneStatus,
+      ).toHaveBeenCalledWith(body);
+    });
+  });
+
+  describe('updateParkingLotStatus', () => {
+    it('should update parking slot status', async () => {
+      // Arrange
+      const body: UpdateParkingLotStatusDto = {
+        zone_name: 'A',
+        parking_lot: 1,
+        status: ActivationStatus.ACTIVE,
+      };
+      const serviceResult = {
+        zone_name: 'A',
+        parking_lot: 1,
+        status: ActivationStatus.ACTIVE,
+      };
+
+      mockParkingZoneService.updateParkingLotStatus.mockImplementation(() =>
+        Promise.resolve(serviceResult),
+      );
+
+      // Act
+      const result = await controller.updateParkingLotStatus(body);
+
+      // Assert
+      expect(result).toEqual(serviceResult);
+      expect(
+        mockParkingZoneService.updateParkingLotStatus,
+      ).toHaveBeenCalledWith(body);
     });
   });
 });

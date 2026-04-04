@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ListByCarSizeType } from '../../common/enums/list-by-car-size-type.enum';
+import { ActivationStatus } from '../../common/enums/activation-status.enum';
 
 export class ParkingSlotStatusItemDto {
   @ApiProperty({ example: 'A' })
@@ -8,7 +9,7 @@ export class ParkingSlotStatusItemDto {
   @ApiProperty({ example: 1 })
   slot_number: number;
 
-  @ApiProperty({ enum: ['available', 'occupied', 'inactive'] })
+  @ApiProperty({ enum: ActivationStatus })
   status: string;
 }
 

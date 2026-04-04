@@ -1,4 +1,12 @@
-import { Controller, Post, Body, HttpCode, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  Get,
+  Query,
+  Patch,
+} from '@nestjs/common';
 import { ParkingZoneService } from './parking-zone.service';
 import { CreateParkingZoneDto } from './dtos/request-create-parking-zone.dto';
 import { SuccessMessage } from '../common/decorators/success-message.decorator';
@@ -7,6 +15,10 @@ import { ParkingZoneAvailableLotsResponseDto } from './dtos/response-parking-zon
 import { GetParkingZonesDto } from './dtos/request-get-parking-zones.dto';
 import { GetParkingLotStatusDto } from './dtos/request-get-parking-lot-status.dto';
 import { ParkingLotStatusResponseDto } from './dtos/response-parking-lot-status.dto';
+import { UpdateParkingZoneStatusDto } from './dtos/request-update-parking-zone-status.dto';
+import { UpdateParkingLotStatusDto } from './dtos/request-update-parking-lot-status.dto';
+import { UpdateParkingZoneStatusResponseDto } from './dtos/response-update-parking-zone-status.dto';
+import { UpdateParkingLotStatusResponseDto } from './dtos/response-update-parking-lot-status.dto';
 import {
   ApiOkResponse,
   ApiOperation,
@@ -60,5 +72,31 @@ export class ParkingZoneController {
       query.zone_name,
       query.parking_lot,
     );
+  }
+
+  @Patch('zone-status')
+  @HttpCode(200)
+  @SuccessMessage('Parking zone status updated successfully')
+  @ApiOperation({
+    summary: 'Update status of parking zone (active/inactive)',
+  })
+  @ApiOkResponse({ type: UpdateParkingZoneStatusResponseDto })
+  updateParkingZoneStatus(
+    @Body() body: UpdateParkingZoneStatusDto,
+  ): Promise<UpdateParkingZoneStatusResponseDto> {
+    return this.parkingZoneService.updateParkingZoneStatus(body);
+  }
+
+  @Patch('lot-status')
+  @HttpCode(200)
+  @SuccessMessage('Parking lot status updated successfully')
+  @ApiOperation({
+    summary: 'Update status of a parking lot only (active/inactive)',
+  })
+  @ApiOkResponse({ type: UpdateParkingLotStatusResponseDto })
+  updateParkingLotStatus(
+    @Body() body: UpdateParkingLotStatusDto,
+  ): Promise<UpdateParkingLotStatusResponseDto> {
+    return this.parkingZoneService.updateParkingLotStatus(body);
   }
 }

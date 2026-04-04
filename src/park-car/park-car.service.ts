@@ -8,6 +8,7 @@ import { VehicleModel } from '../common/models/vehicle.model';
 import { VehicleLogModel } from '../common/models/vehicle-log.model';
 import { VehicleStatus } from '../common/enums/vehicle-status.enum';
 import { VehicleLogEventType } from '../common/enums/vehicle-log-event-type.enum';
+import { ActivationStatus } from '../common/enums/activation-status.enum';
 import { ListByCarSizeType } from '../common/enums/list-by-car-size-type.enum';
 import { ParkCarDto } from './dtos/request-park-car.dto';
 import { ParkCarResponseDto } from './dtos/response-park-car.dto';
@@ -140,6 +141,9 @@ export class ParkCarService {
       .from(ParkingSlotModel, 'slot')
       .innerJoin(ParkingZoneModel, 'zone', 'zone.zone_id = slot.zone_id')
       .where('zone.car_size = :car_size', { car_size: carSize })
+      .andWhere('zone.status = :zoneStatus', {
+        zoneStatus: ActivationStatus.ACTIVE,
+      })
       .select('zone.zone_name', 'zone_name')
       .addSelect('slot.slot_number', 'slot_number')
       .addSelect('slot.status', 'status')
@@ -194,8 +198,12 @@ export class ParkCarService {
     const availableSlot = await manager
       .createQueryBuilder(ParkingSlotModel, 'slot')
       .innerJoin(ParkingZoneModel, 'zone', 'zone.zone_id = slot.zone_id')
-      .where('slot.status = :slotStatus', { slotStatus: 'available' })
-      .andWhere('zone.status = :zoneStatus', { zoneStatus: 'active' })
+      .where('slot.status = :slotStatus', {
+        slotStatus: ActivationStatus.AVAILABLE,
+      })
+      .andWhere('zone.status = :zoneStatus', {
+        zoneStatus: ActivationStatus.ACTIVE,
+      })
       .andWhere('zone.car_size = :car_size', { car_size: carSize })
       .select('slot.slot_id', 'slot_id')
       .addSelect('slot.slot_number', 'slot_number')
@@ -219,8 +227,8 @@ export class ParkCarService {
   ): Promise<void> {
     const updateSlotResult = await manager.update(
       ParkingSlotModel,
-      { slot_id: slotId, status: 'available' },
-      { status: 'occupied' },
+      { slot_id: slotId, status: ActivationStatus.AVAILABLE },
+      { status: ActivationStatus.OCCUPIED },
     );
 
     if (!updateSlotResult.affected) {
@@ -236,8 +244,8 @@ export class ParkCarService {
   ): Promise<void> {
     const updateSlotResult = await manager.update(
       ParkingSlotModel,
-      { slot_id: slotId, status: 'occupied' },
-      { status: 'available' },
+      { slot_id: slotId, status: ActivationStatus.OCCUPIED },
+      { status: ActivationStatus.AVAILABLE },
     );
 
     if (!updateSlotResult.affected) {

@@ -8,6 +8,11 @@ import { CreateParkingZoneDto } from './dtos/request-create-parking-zone.dto';
 import { CreateParkingZoneResponseDto } from './dtos/response-create-parking-zone.dto';
 import { ParkingZoneAvailableLotsResponseDto } from './dtos/response-parking-zone-available-lots.dto';
 import { ParkingLotStatusResponseDto } from './dtos/response-parking-lot-status.dto';
+import { UpdateParkingZoneStatusDto } from './dtos/request-update-parking-zone-status.dto';
+import { UpdateParkingLotStatusDto } from './dtos/request-update-parking-lot-status.dto';
+import { UpdateParkingZoneStatusResponseDto } from './dtos/response-update-parking-zone-status.dto';
+import { UpdateParkingLotStatusResponseDto } from './dtos/response-update-parking-lot-status.dto';
+import { ActivationStatus } from '../common/enums/activation-status.enum';
 
 @Injectable()
 export class ParkingZoneService {
@@ -37,7 +42,7 @@ export class ParkingZoneService {
         zone_id: uuidv4(),
         zone_name,
         car_size,
-        status: 'active',
+        status: ActivationStatus.ACTIVE,
       });
 
       const savedZone = await manager.save(ParkingZoneModel, zone);
@@ -49,7 +54,7 @@ export class ParkingZoneService {
             slot_id: uuidv4(),
             zone_id: savedZone.zone_id,
             slot_number: idx + 1,
-            status: 'available',
+            status: ActivationStatus.AVAILABLE,
           }),
       );
 
@@ -72,10 +77,13 @@ export class ParkingZoneService {
         ParkingSlotModel,
         'slot',
         'slot.zone_id = zone.zone_id AND slot.status = :status',
-        { status: 'available' },
+        { status: ActivationStatus.AVAILABLE },
       )
       .where(':car_size IS NULL OR zone.car_size = :car_size', {
         car_size: car_size ?? null,
+      })
+      .andWhere('zone.status = :zoneStatus', {
+        zoneStatus: ActivationStatus.ACTIVE,
       })
       .select('zone.zone_name', 'zone_name')
       .addSelect('zone.car_size', 'car_size')
@@ -102,7 +110,7 @@ export class ParkingZoneService {
     parkingLot: number,
   ): Promise<ParkingLotStatusResponseDto> {
     const zone = await this.parkingZone.findOne({
-      where: { zone_name: zoneName },
+      where: { zone_name: zoneName, status: ActivationStatus.ACTIVE },
     });
 
     if (!zone) {
@@ -125,5 +133,109 @@ export class ParkingZoneService {
       parking_lot: parkingLot,
       status: slot.status,
     };
+  }
+
+  async updateParkingZoneStatus(
+    body: UpdateParkingZoneStatusDto,
+  ): Promise<UpdateParkingZoneStatusResponseDto> {
+    const { zone_name, status } = body;
+
+    const zone = await this.parkingZone.findOne({
+      where: { zone_name },
+    });
+
+    if (!zone) {
+      throw new BadRequestException('Zone not found');
+    }
+
+    if (status === ActivationStatus.INACTIVE) {
+      await this.ensureNoOccupiedSlot(zone.zone_id, {
+        message: 'Cannot set zone inactive while slots are occupied',
+      });
+      await this.parkingSlot.update(
+        { zone_id: zone.zone_id },
+        { status: ActivationStatus.INACTIVE },
+      );
+    }
+
+    if (status === ActivationStatus.ACTIVE) {
+      await this.parkingSlot.update(
+        { zone_id: zone.zone_id, status: ActivationStatus.INACTIVE },
+        { status: ActivationStatus.AVAILABLE },
+      );
+    }
+
+    zone.status = status;
+    await this.parkingZone.save(zone);
+
+    return {
+      zone_name,
+      status,
+    };
+  }
+
+  async updateParkingLotStatus(
+    body: UpdateParkingLotStatusDto,
+  ): Promise<UpdateParkingLotStatusResponseDto> {
+    const { zone_name, parking_lot, status } = body;
+
+    const zone = await this.parkingZone.findOne({
+      where: { zone_name },
+    });
+
+    if (!zone) {
+      throw new BadRequestException('Zone not found');
+    }
+
+    const slot = await this.parkingSlot.findOne({
+      where: {
+        zone_id: zone.zone_id,
+        slot_number: parking_lot,
+      },
+    });
+
+    if (!slot) {
+      throw new BadRequestException('Parking lot not found');
+    }
+
+    if (status === ActivationStatus.INACTIVE) {
+      await this.ensureNoOccupiedSlot(zone.zone_id, {
+        parkingLot: parking_lot,
+        message: 'Cannot set occupied slot to inactive',
+      });
+    }
+
+    slot.status =
+      status === ActivationStatus.ACTIVE
+        ? ActivationStatus.AVAILABLE
+        : ActivationStatus.INACTIVE;
+    await this.parkingSlot.save(slot);
+
+    return {
+      zone_name,
+      parking_lot,
+      status,
+    };
+  }
+
+  private async ensureNoOccupiedSlot(
+    zoneId: string,
+    options: { parkingLot?: number; message: string },
+  ): Promise<void> {
+    const whereCondition = options.parkingLot
+      ? {
+          zone_id: zoneId,
+          slot_number: options.parkingLot,
+          status: ActivationStatus.OCCUPIED,
+        }
+      : { zone_id: zoneId, status: ActivationStatus.OCCUPIED };
+
+    const occupiedCount = await this.parkingSlot.count({
+      where: whereCondition,
+    });
+
+    if (occupiedCount > 0) {
+      throw new BadRequestException(options.message);
+    }
   }
 }
