@@ -50,6 +50,7 @@ async function bootstrap() {
   // Validate and transform request payloads globally.
   app.useGlobalPipes(
     new ValidationPipe({
+      forbidNonWhitelisted: true,
       whitelist: true,
       transform: true,
       // Return validation errors in the custom error shape used by the filter.

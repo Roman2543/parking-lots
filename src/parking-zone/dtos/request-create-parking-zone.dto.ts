@@ -1,13 +1,11 @@
-import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateParkingZoneDto {
   @IsString()
   @IsNotEmpty()
   zone_name: string;
 
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
+  @IsInt()
+  @IsNotEmpty()
   parking_space: number;
 }
