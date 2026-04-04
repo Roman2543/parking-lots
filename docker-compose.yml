@@ -3,11 +3,11 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: parking-lots-mssql
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
-      MSSQL_PID: "Developer"
+      ACCEPT_EULA: 'Y'
+      MSSQL_SA_PASSWORD: 'YourStrong!Passw0rd'
+      MSSQL_PID: 'Developer'
     ports:
-      - "1433:1433"
+      - '1433:1433'
     volumes:
       - mssql-data:/var/opt/mssql
     restart: unless-stopped
@@ -19,10 +19,10 @@ services:
       mssql:
         condition: service_started
     environment:
-      MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
-      APP_DB_USER: "app_user"
-      APP_DB_PASSWORD: "AppUser!Passw0rd"
-      APP_DB_NAME: "parking_lots"
+      MSSQL_SA_PASSWORD: 'YourStrong!Passw0rd'
+      APP_DB_USER: 'app_user'
+      APP_DB_PASSWORD: 'AppUser!Passw0rd'
+      APP_DB_NAME: 'parking_lots'
     volumes:
       - ./docker/mssql/init.sql:/scripts/init.sql:ro
     command:
@@ -37,7 +37,7 @@ services:
         /opt/mssql-tools/bin/sqlcmd \
           -S mssql -U sa -P "$$MSSQL_SA_PASSWORD" \
           -i /tmp/init.sql
-    restart: "no"
+    restart: 'no'
 
   app:
     build:
@@ -50,14 +50,14 @@ services:
       mssql-init:
         condition: service_completed_successfully
     environment:
-      PORT: "3000"
-      DB_HOST: "mssql"
-      DB_PORT: "1433"
-      DB_USER: "app_user"
-      DB_PASSWORD: "AppUser!Passw0rd"
-      DB_NAME: "parking_lots"
+      PORT: '3000'
+      DB_HOST: 'mssql'
+      DB_PORT: '1433'
+      DB_USER: 'app_user'
+      DB_PASSWORD: 'AppUser!Passw0rd'
+      DB_NAME: 'parking_lots'
     ports:
-      - "3000:3000"
+      - '3000:3000'
     restart: unless-stopped
 
 volumes:

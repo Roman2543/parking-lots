@@ -34,4 +34,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["yarn", "start:app"]
+CMD ["yarn", "start:prod"]

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ParkingZoneService } from '../parking-zone.service';
-import { ParkingZoneModel } from '../models/parking-zone.model';
-import { ParkingSlotModel } from '../models/parking-slot.model';
+import { ParkingZoneModel } from '../../common/models/parking-zone.model';
+import { ParkingSlotModel } from '../../common/models/parking-slot.model';
 import { CreateParkingZoneDto } from '../dtos/request-create-parking-zone.dto';
 
 jest.mock('uuid', () => ({
