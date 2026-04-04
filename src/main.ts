@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AppModule } from './app/app.module';
+import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ResponseMaskInterceptor } from './common/interceptors/response-mask.interceptor';
 

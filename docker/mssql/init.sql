@@ -23,7 +23,7 @@ GO
 IF OBJECT_ID('dbo.parking_zones', 'U') IS NULL
 BEGIN
   CREATE TABLE dbo.parking_zones (
-    id UNIQUEIDENTIFIER NOT NULL
+    zone_id UNIQUEIDENTIFIER NOT NULL
       CONSTRAINT PK_parking_zones PRIMARY KEY
       DEFAULT NEWID(),
     zone_name NVARCHAR(100) NOT NULL,
@@ -42,7 +42,7 @@ GO
 IF OBJECT_ID('dbo.parking_slots', 'U') IS NULL
 BEGIN
   CREATE TABLE dbo.parking_slots (
-    id UNIQUEIDENTIFIER NOT NULL
+    slot_id UNIQUEIDENTIFIER NOT NULL
       CONSTRAINT PK_parking_slots PRIMARY KEY
       DEFAULT NEWID(),
     slot_number INT NOT NULL,
@@ -55,7 +55,7 @@ BEGIN
       CONSTRAINT DF_parking_slots_updated_at DEFAULT SYSUTCDATETIME(),
     CONSTRAINT UQ_parking_slots_zone_slot UNIQUE (zone_id, slot_number),
     CONSTRAINT FK_parking_slots_zone_id FOREIGN KEY (zone_id)
-      REFERENCES dbo.parking_zones (id),
+      REFERENCES dbo.parking_zones (zone_id),
     CONSTRAINT CK_parking_slots_status CHECK (
       status IN ('available', 'occupied', 'inactive')
     )
@@ -66,7 +66,7 @@ GO
 IF OBJECT_ID('dbo.vehicles', 'U') IS NULL
 BEGIN
   CREATE TABLE dbo.vehicles (
-    id UNIQUEIDENTIFIER NOT NULL
+    vehicle_id UNIQUEIDENTIFIER NOT NULL
       CONSTRAINT PK_vehicles PRIMARY KEY
       DEFAULT NEWID(),
     plate_number VARCHAR(20) NOT NULL,
@@ -80,7 +80,7 @@ BEGIN
       CONSTRAINT DF_vehicles_updated_at DEFAULT SYSUTCDATETIME(),
     CONSTRAINT UQ_vehicles_plate_number UNIQUE (plate_number),
     CONSTRAINT FK_vehicles_current_slot_id FOREIGN KEY (current_slot_id)
-      REFERENCES dbo.parking_slots (id),
+      REFERENCES dbo.parking_slots (slot_id),
     CONSTRAINT CK_vehicles_car_size CHECK (car_size IN ('small', 'medium', 'large')),
     CONSTRAINT CK_vehicles_status CHECK (status IN ('parked', 'inactive', 'left')),
     CONSTRAINT CK_vehicles_status_slot_consistency CHECK (
@@ -94,7 +94,7 @@ GO
 IF OBJECT_ID('dbo.vehicle_logs', 'U') IS NULL
 BEGIN
   CREATE TABLE dbo.vehicle_logs (
-    id UNIQUEIDENTIFIER NOT NULL
+    vehicle_log_id UNIQUEIDENTIFIER NOT NULL
       CONSTRAINT PK_vehicle_logs PRIMARY KEY
       DEFAULT NEWID(),
     vehicle_id UNIQUEIDENTIFIER NOT NULL,
@@ -106,9 +106,9 @@ BEGIN
     logged_at DATETIME2(0) NOT NULL
       CONSTRAINT DF_vehicle_logs_logged_at DEFAULT SYSUTCDATETIME(),
     CONSTRAINT FK_vehicle_logs_vehicle_id FOREIGN KEY (vehicle_id)
-      REFERENCES dbo.vehicles (id),
+      REFERENCES dbo.vehicles (vehicle_id),
     CONSTRAINT FK_vehicle_logs_slot_id FOREIGN KEY (slot_id)
-      REFERENCES dbo.parking_slots (id),
+      REFERENCES dbo.parking_slots (slot_id),
     CONSTRAINT CK_vehicle_logs_event_type CHECK (
       event_type IN ('parked', 'left', 'moved', 'status_changed')
     ),
