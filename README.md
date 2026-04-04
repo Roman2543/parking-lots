@@ -38,6 +38,7 @@ docker compose up -d --build
 หมายเหตุ:
 
 - API จะพร้อมใช้งานที่ `http://localhost:3000`
+- Swagger Docs: `http://localhost:3000/docs`
 - DB จะพร้อมใช้งานที่ `localhost:1433`
 - หากต้องการหยุดทุก container ใช้ `docker compose down`
 
@@ -208,6 +209,47 @@ curl -X GET "http://localhost:3000/parking-lot/available-zones"
 }
 ```
 
+### 3) Park Vehicle
+
+- Method: `POST`
+- Path: `/parking-lot/park`
+
+Request Body:
+
+```json
+{
+  "plate_number": "1กข1234",
+  "car_size": "small"
+}
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "Car parked successfully",
+  "data": {
+    "plate_number": "1กข1234",
+    "car_size": "small",
+    "slot_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "zone_name": "A",
+    "slot_number": 1,
+    "status": "parked"
+  }
+}
+```
+
+ตัวอย่างกรณีรถคันเดิมยังจอดอยู่:
+
+```json
+{
+  "code": "400",
+  "message": "This vehicle is already parked.",
+  "data": null
+}
+```
+
 ### cURL (กรองด้วย optional car_size)
 
 ```bash
@@ -238,8 +280,8 @@ curl -X GET "http://localhost:3000/parking-lot/available-zones?car_size=small"
 
 - `zone_id` UNIQUEIDENTIFIER PK
 - `zone_name` NVARCHAR(100) UNIQUE NOT NULL
-- `car_size` VARCHAR(10) NOT NULL (`small | medium | large`)
-- `status` VARCHAR(20) NOT NULL (`active | inactive`)
+- `car_size` NVARCHAR(10) NOT NULL (`small | medium | large`)
+- `status` NVARCHAR(20) NOT NULL (`active | inactive`)
 - `created_at` DATETIME2(0)
 - `updated_at` DATETIME2(0)
 
@@ -248,7 +290,7 @@ curl -X GET "http://localhost:3000/parking-lot/available-zones?car_size=small"
 - `slot_id` UNIQUEIDENTIFIER PK
 - `slot_number` INT NOT NULL
 - `zone_id` UNIQUEIDENTIFIER NOT NULL (FK -> `parking_zones.zone_id`)
-- `status` VARCHAR(20) NOT NULL (`available | occupied | inactive`)
+- `status` NVARCHAR(20) NOT NULL (`available | occupied | inactive`)
 - `created_at` DATETIME2(0)
 - `updated_at` DATETIME2(0)
 - UNIQUE (`zone_id`, `slot_number`)
@@ -256,10 +298,10 @@ curl -X GET "http://localhost:3000/parking-lot/available-zones?car_size=small"
 ### 3) vehicles
 
 - `vehicle_id` UNIQUEIDENTIFIER PK
-- `plate_number` VARCHAR(20) UNIQUE NOT NULL
-- `car_size` VARCHAR(10) NOT NULL (`small | medium | large`)
+- `plate_number` NVARCHAR(20) UNIQUE NOT NULL
+- `car_size` NVARCHAR(10) NOT NULL (`small | medium | large`)
 - `current_slot_id` UNIQUEIDENTIFIER NULL (FK -> `parking_slots.slot_id`)
-- `status` VARCHAR(20) NOT NULL (`parked | inactive | left`)
+- `status` NVARCHAR(20) NOT NULL (`parked | inactive | left`)
 - `created_at` DATETIME2(0)
 - `updated_at` DATETIME2(0)
 
@@ -268,9 +310,9 @@ curl -X GET "http://localhost:3000/parking-lot/available-zones?car_size=small"
 - `vehicle_log_id` UNIQUEIDENTIFIER PK
 - `vehicle_id` UNIQUEIDENTIFIER NOT NULL (FK -> `vehicles.vehicle_id`)
 - `slot_id` UNIQUEIDENTIFIER NULL (FK -> `parking_slots.slot_id`)
-- `event_type` VARCHAR(20) NOT NULL (`parked | left | moved | status_changed`)
-- `old_status` VARCHAR(20) NULL
-- `new_status` VARCHAR(20) NULL
+- `event_type` NVARCHAR(20) NOT NULL (`parked | left | moved | status_changed`)
+- `old_status` NVARCHAR(20) NULL
+- `new_status` NVARCHAR(20) NULL
 - `note` NVARCHAR(255) NULL
 - `logged_at` DATETIME2(0)
 
@@ -283,6 +325,7 @@ curl -X GET "http://localhost:3000/parking-lot/available-zones?car_size=small"
 
 - โปรเจกต์ตั้งค่า `synchronize: false` ดังนั้นโครงสร้างตารางใช้จาก SQL init script
 - หากเปลี่ยน schema เพิ่มเติม ให้แก้ `docker/mssql/init.sql` และ re-init database
+- คอลัมน์ข้อความหลักใช้ `NVARCHAR` เพื่อรองรับ Unicode/ภาษาไทย
 
 ## Test
 
