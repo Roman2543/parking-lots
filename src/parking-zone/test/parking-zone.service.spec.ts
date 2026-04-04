@@ -316,6 +316,54 @@ describe('ParkingZoneService', () => {
   });
 
   describe('updateParkingZoneStatus', () => {
+    it('should throw when zone is not found', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve(null),
+      );
+
+      // Act & Assert
+      await expect(
+        service.updateParkingZoneStatus({
+          zone_name: 'X',
+          status: ActivationStatus.INACTIVE,
+        }),
+      ).rejects.toThrow('Zone not found');
+    });
+
+    it('should update parking zone to active and restore inactive slots to available', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve({
+          zone_id: 'zone-1',
+          zone_name: 'A',
+          status: ActivationStatus.INACTIVE,
+        }),
+      );
+      mockParkingSlotRepository.update.mockImplementation(() =>
+        Promise.resolve(undefined),
+      );
+      mockParkingZoneRepository.save.mockImplementation((value) =>
+        Promise.resolve(value),
+      );
+
+      // Act
+      const result = await service.updateParkingZoneStatus({
+        zone_name: 'A',
+        status: ActivationStatus.ACTIVE,
+      });
+
+      // Assert
+      expect(result).toEqual({
+        zone_name: 'A',
+        status: ActivationStatus.ACTIVE,
+      });
+      expect(mockParkingSlotRepository.update).toHaveBeenCalledWith(
+        { zone_id: 'zone-1', status: ActivationStatus.INACTIVE },
+        { status: ActivationStatus.AVAILABLE },
+      );
+    });
+
     it('should update parking zone to inactive and mark all slots inactive', async () => {
       // Arrange
       mockParkingZoneRepository.findOne.mockImplementation(() =>
@@ -382,6 +430,45 @@ describe('ParkingZoneService', () => {
   });
 
   describe('updateParkingLotStatus', () => {
+    it('should throw when zone is not found', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve(null),
+      );
+
+      // Act & Assert
+      await expect(
+        service.updateParkingLotStatus({
+          zone_name: 'X',
+          parking_lot: 1,
+          status: ActivationStatus.INACTIVE,
+        }),
+      ).rejects.toThrow('Zone not found');
+    });
+
+    it('should throw when parking lot is not found', async () => {
+      // Arrange
+      mockParkingZoneRepository.findOne.mockImplementation(() =>
+        Promise.resolve({
+          zone_id: 'zone-1',
+          zone_name: 'A',
+          status: ActivationStatus.ACTIVE,
+        }),
+      );
+      mockParkingSlotRepository.findOne.mockImplementation(() =>
+        Promise.resolve(null),
+      );
+
+      // Act & Assert
+      await expect(
+        service.updateParkingLotStatus({
+          zone_name: 'A',
+          parking_lot: 99,
+          status: ActivationStatus.INACTIVE,
+        }),
+      ).rejects.toThrow('Parking lot not found');
+    });
+
     it('should update parking slot status to available when setting active', async () => {
       // Arrange
       mockParkingZoneRepository.findOne.mockImplementation(() =>

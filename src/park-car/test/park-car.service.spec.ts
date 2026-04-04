@@ -8,6 +8,7 @@ import { ParkCarDto } from '../dtos/request-park-car.dto';
 import { LeaveCarDto } from '../dtos/request-leave-car.dto';
 import { ListByCarSizeType } from '../../common/enums/list-by-car-size-type.enum';
 import { ActivationStatus } from '../../common/enums/activation-status.enum';
+import { VehicleStatus } from '../../common/enums/vehicle-status.enum';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(),
@@ -32,6 +33,7 @@ describe('ParkCarService', () => {
   const mockVehicleRepository = {
     create: jest.fn((value) => value) as jest.Mock,
     find: jest.fn() as jest.Mock,
+    findOne: jest.fn() as jest.Mock,
   };
 
   const mockManager = {
@@ -470,6 +472,77 @@ describe('ParkCarService', () => {
         'Selected parking slot is no longer occupied',
       );
       expect(mockManager.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('searchCar', () => {
+    it('should return plate, zone, slot_number when vehicle is parked', async () => {
+      // Arrange
+      const parkedVehicle = {
+        vehicle_id: 'vehicle-1',
+        plate_number: 'AA-1234',
+        car_size: 'small',
+        current_slot_id: 'slot-1',
+        status: VehicleStatus.PARKED,
+      };
+
+      mockVehicleRepository.findOne = jest.fn(() =>
+        Promise.resolve(parkedVehicle),
+      ) as jest.Mock;
+
+      const searchQueryBuilder = {
+        from: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn(() =>
+          Promise.resolve({ slot_number: '3', zone_name: 'A' }),
+        ) as jest.Mock,
+      };
+      mockDataSource.createQueryBuilder.mockReturnValue(searchQueryBuilder);
+
+      // Act
+      const result = await service.searchCar('AA-1234');
+
+      // Assert
+      expect(result).toEqual({
+        plate_number: 'AA-1234',
+        zone_name: 'A',
+        slot_number: 3,
+      });
+    });
+
+    it('should throw when vehicle is not currently parked', async () => {
+      // Arrange
+      const leftVehicle = {
+        vehicle_id: 'vehicle-2',
+        plate_number: 'BB-9999',
+        car_size: 'medium',
+        current_slot_id: null,
+        status: VehicleStatus.LEFT,
+      };
+
+      mockVehicleRepository.findOne = jest.fn(() =>
+        Promise.resolve(leftVehicle),
+      ) as jest.Mock;
+
+      // Act & Assert
+      await expect(service.searchCar('BB-9999')).rejects.toThrow(
+        'Vehicle is not currently in the parking lot',
+      );
+      expect(mockDataSource.createQueryBuilder).not.toHaveBeenCalled();
+    });
+
+    it('should throw when vehicle is not found', async () => {
+      // Arrange
+      mockVehicleRepository.findOne = jest.fn(() =>
+        Promise.resolve(null),
+      ) as jest.Mock;
+
+      // Act & Assert
+      await expect(service.searchCar('XX-0000')).rejects.toThrow(
+        'Vehicle not found',
+      );
     });
   });
 

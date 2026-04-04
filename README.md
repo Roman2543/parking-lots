@@ -330,7 +330,65 @@ curl -X POST "http://localhost:3000/parking-car/leave" \
 }
 ```
 
-### 5) Get Parking Lot Status
+### 5) Search Vehicle
+
+- Method: `GET`
+- Path: `/parking-car/search-vehicle`
+- Query (required): `plate_number`
+
+### cURL (success)
+
+```bash
+curl -X GET "http://localhost:3000/parking-car/search-vehicle?plate_number=1กข1234"
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "200",
+  "message": "Car found successfully",
+  "data": {
+    "plate_number": "1กข1234",
+    "zone_name": "A",
+    "slot_number": 1
+  }
+}
+```
+
+### cURL (รถไม่ได้อยู่ในลาน)
+
+```bash
+curl -X GET "http://localhost:3000/parking-car/search-vehicle?plate_number=1กข1234"
+```
+
+ตัวอย่าง Error Response:
+
+```json
+{
+  "code": "400",
+  "message": "Vehicle is not currently in the parking lot",
+  "data": null
+}
+```
+
+### cURL (ไม่พบรถ)
+
+```bash
+curl -X GET "http://localhost:3000/parking-car/search-vehicle?plate_number=XX-9999"
+```
+
+ตัวอย่าง Error Response:
+
+```json
+{
+  "code": "400",
+  "message": "Vehicle not found",
+  "data": null
+}
+```
+
+### 6) Get Parking Lot Status
 
 - Method: `GET`
 - Path: `/parking-lot/status`
@@ -382,7 +440,7 @@ curl -X GET "http://localhost:3000/parking-lot/status?zone_name=A&parking_lot=1"
 
 - API ดึงข้อมูลโซน/ช่องจอดจะดึงจาก `parking zone` ที่มีสถานะ `active` เท่านั้น
 
-### 6) Update Parking Zone Status
+### 7) Update Parking Zone Status
 
 - Method: `PATCH`
 - Path: `/parking-lot/zone-status`
@@ -414,11 +472,22 @@ curl -X PATCH "http://localhost:3000/parking-lot/zone-status" \
 }
 ```
 
+ตัวอย่าง Error Response (มีรถจอดอยู่):
+
+```json
+{
+  "code": "400",
+  "message": "Cannot set zone inactive while slots are occupied",
+  "data": null
+}
+```
+
 หมายเหตุ:
 
-- เมื่อ update `zone` เป็น `inactive` ระบบจะอัปเดต lots ทั้งโซนเป็น `inactive` ด้วย
+- ตั้งเป็น `inactive` → ช่องจอดทุกช่องในโซนจะเปลี่ยนเป็น `inactive` ด้วย (ไม่สามารถทำได้หากมีรถจอดอยู่)
+- ตั้งเป็น `active` → ช่องจอดที่เป็น `inactive` จะกลับมาเป็น `available`
 
-### 7) Update Parking Lot Status
+### 8) Update Parking Lot Status
 
 - Method: `PATCH`
 - Path: `/parking-lot/lot-status`
@@ -463,7 +532,12 @@ curl -X PATCH "http://localhost:3000/parking-lot/lot-status" \
 }
 ```
 
-### 8) Get List By Car Size
+หมายเหตุ:
+
+- ตั้งเป็น `active` → สถานะช่องจอดจริงใน DB จะเปลี่ยนเป็น `available`
+- ตั้งเป็น `inactive` → ไม่สามารถทำได้หากช่องนั้นมีรถจอดอยู่ (`occupied`)
+
+### 9) Get List By Car Size
 
 - Method: `GET`
 - Path: `/parking-car/list`
@@ -521,6 +595,10 @@ curl -X GET "http://localhost:3000/parking-car/list?field=parking-slot&car_size=
   }
 }
 ```
+
+หมายเหตุ:
+
+- `parking-slot` จะแสดงเฉพาะโซนที่มีสถานะ `active`
 
 ## Database Structure
 

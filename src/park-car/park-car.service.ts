@@ -17,6 +17,7 @@ import { LeaveCarResponseDto } from './dtos/response-leave-car.dto';
 import { AvailableSlotDto } from './dtos/available-slot.dto';
 import { VehicleLogContextDto } from './dtos/vehicle-log-context.dto';
 import { ListByCarSizeResponseDto } from './dtos/response-get-list.dto';
+import { SearchCarResponseDto } from './dtos/response-search-car.dto';
 
 @Injectable()
 export class ParkCarService {
@@ -116,6 +117,37 @@ export class ParkCarService {
       plate_number,
       slot_id: leftSlotId,
       status: VehicleStatus.LEFT,
+    };
+  }
+
+  async searchCar(plateNumber: string): Promise<SearchCarResponseDto> {
+    const vehicle = await this.vehicle.findOne({
+      where: { plate_number: plateNumber },
+    });
+
+    if (!vehicle) {
+      throw new BadRequestException('Vehicle not found');
+    }
+
+    if (vehicle.status !== VehicleStatus.PARKED.toString()) {
+      throw new BadRequestException(
+        'Vehicle is not currently in the parking lot',
+      );
+    }
+
+    const slotInfo = await this.dataSource
+      .createQueryBuilder()
+      .from(ParkingSlotModel, 'slot')
+      .innerJoin(ParkingZoneModel, 'zone', 'zone.zone_id = slot.zone_id')
+      .where('slot.slot_id = :slot_id', { slot_id: vehicle.current_slot_id })
+      .addSelect('slot.slot_number', 'slot_number')
+      .addSelect('zone.zone_name', 'zone_name')
+      .getRawOne<{ slot_number: string; zone_name: string }>();
+
+    return {
+      plate_number: vehicle.plate_number,
+      zone_name: slotInfo.zone_name,
+      slot_number: Number(slotInfo.slot_number),
     };
   }
 

@@ -11,6 +11,7 @@ import { ParkCarDto } from '../dtos/request-park-car.dto';
 import { LeaveCarDto } from '../dtos/request-leave-car.dto';
 import { ParkCarResponseDto } from '../dtos/response-park-car.dto';
 import { GetListByCarSizeDto } from '../dtos/request-get-list.dto';
+import { SearchCarResponseDto } from '../dtos/response-search-car.dto';
 import { ListByCarSizeType } from '../../common/enums/list-by-car-size-type.enum';
 import { ActivationStatus } from '../../common/enums/activation-status.enum';
 
@@ -20,6 +21,7 @@ describe('ParkCarController', () => {
   const mockParkCarService = {
     parkCar: jest.fn() as jest.Mock,
     leaveCar: jest.fn() as jest.Mock,
+    searchCar: jest.fn() as jest.Mock,
     getListByCarSize: jest.fn() as jest.Mock,
   };
 
@@ -198,6 +200,55 @@ describe('ParkCarController', () => {
       expect(mockParkCarService.getListByCarSize).toHaveBeenCalledWith(
         ListByCarSizeType.PARKING_SLOT,
         'small',
+      );
+    });
+  });
+
+  describe('searchCar', () => {
+    it('should return plate, zone, slot_number when vehicle is parked', async () => {
+      // Arrange
+      const expected: SearchCarResponseDto = {
+        plate_number: 'AA-1234',
+        zone_name: 'A',
+        slot_number: 1,
+      };
+      mockParkCarService.searchCar.mockImplementation(() =>
+        Promise.resolve(expected),
+      );
+
+      // Act
+      const result = await controller.searchCar('AA-1234');
+
+      // Assert
+      expect(result).toEqual(expected);
+      expect(mockParkCarService.searchCar).toHaveBeenCalledWith('AA-1234');
+    });
+
+    it('should propagate BadRequestException when vehicle is not parked', async () => {
+      // Arrange
+      mockParkCarService.searchCar.mockImplementation(() =>
+        Promise.reject(
+          new BadRequestException(
+            'Vehicle is not currently in the parking lot',
+          ),
+        ),
+      );
+
+      // Act & Assert
+      await expect(controller.searchCar('AA-1234')).rejects.toThrow(
+        'Vehicle is not currently in the parking lot',
+      );
+    });
+
+    it('should propagate BadRequestException when vehicle not found', async () => {
+      // Arrange
+      mockParkCarService.searchCar.mockImplementation(() =>
+        Promise.reject(new BadRequestException('Vehicle not found')),
+      );
+
+      // Act & Assert
+      await expect(controller.searchCar('XX-9999')).rejects.toThrow(
+        'Vehicle not found',
       );
     });
   });

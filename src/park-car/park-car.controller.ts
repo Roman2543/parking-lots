@@ -10,6 +10,7 @@ import { ParkCarDto } from './dtos/request-park-car.dto';
 import { ParkCarResponseDto } from './dtos/response-park-car.dto';
 import { LeaveCarDto } from './dtos/request-leave-car.dto';
 import { LeaveCarResponseDto } from './dtos/response-leave-car.dto';
+import { SearchCarResponseDto } from './dtos/response-search-car.dto';
 
 import { ParkCarService } from './park-car.service';
 import { ListByCarSizeResponseDto } from './dtos/response-get-list.dto';
@@ -41,6 +42,18 @@ export class ParkCarController {
   @ApiOkResponse({ type: LeaveCarResponseDto })
   async leaveCar(@Body() body: LeaveCarDto): Promise<LeaveCarResponseDto> {
     return this.parkCarService.leaveCar(body);
+  }
+
+  @Get('search-vehicle')
+  @HttpCode(200)
+  @SuccessMessage('Car found successfully')
+  @ApiOperation({ summary: 'Search car by plate number' })
+  @ApiQuery({ name: 'plate_number', required: true, type: String })
+  @ApiOkResponse({ type: SearchCarResponseDto })
+  searchCar(
+    @Query('plate_number') plateNumber: string,
+  ): Promise<SearchCarResponseDto> {
+    return this.parkCarService.searchCar(plateNumber);
   }
 
   @Get('list')
