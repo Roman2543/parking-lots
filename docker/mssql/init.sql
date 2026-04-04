@@ -27,9 +27,9 @@ BEGIN
       CONSTRAINT PK_parking_zones PRIMARY KEY
       DEFAULT NEWID(),
     zone_name NVARCHAR(100) NOT NULL,
-    car_size VARCHAR(10) NOT NULL
+    car_size NVARCHAR(10) NOT NULL
       CONSTRAINT DF_parking_zones_car_size DEFAULT 'medium',
-    status VARCHAR(20) NOT NULL
+    status NVARCHAR(20) NOT NULL
       CONSTRAINT DF_parking_zones_status DEFAULT 'active',
     created_at DATETIME2(0) NOT NULL
       CONSTRAINT DF_parking_zones_created_at DEFAULT SYSUTCDATETIME(),
@@ -50,7 +50,7 @@ BEGIN
       DEFAULT NEWID(),
     slot_number INT NOT NULL,
     zone_id UNIQUEIDENTIFIER NOT NULL,
-    status VARCHAR(20) NOT NULL
+    status NVARCHAR(20) NOT NULL
       CONSTRAINT DF_parking_slots_status DEFAULT 'available',
     created_at DATETIME2(0) NOT NULL
       CONSTRAINT DF_parking_slots_created_at DEFAULT SYSUTCDATETIME(),
@@ -72,10 +72,10 @@ BEGIN
     vehicle_id UNIQUEIDENTIFIER NOT NULL
       CONSTRAINT PK_vehicles PRIMARY KEY
       DEFAULT NEWID(),
-    plate_number VARCHAR(20) NOT NULL,
-    car_size VARCHAR(10) NOT NULL,
+    plate_number NVARCHAR(20) NOT NULL,
+    car_size NVARCHAR(10) NOT NULL,
     current_slot_id UNIQUEIDENTIFIER NULL,
-    status VARCHAR(20) NOT NULL
+    status NVARCHAR(20) NOT NULL
       CONSTRAINT DF_vehicles_status DEFAULT 'left',
     created_at DATETIME2(0) NOT NULL
       CONSTRAINT DF_vehicles_created_at DEFAULT SYSUTCDATETIME(),
@@ -102,9 +102,9 @@ BEGIN
       DEFAULT NEWID(),
     vehicle_id UNIQUEIDENTIFIER NOT NULL,
     slot_id UNIQUEIDENTIFIER NULL,
-    event_type VARCHAR(20) NOT NULL,
-    old_status VARCHAR(20) NULL,
-    new_status VARCHAR(20) NULL,
+    event_type NVARCHAR(20) NOT NULL,
+    old_status NVARCHAR(20) NULL,
+    new_status NVARCHAR(20) NULL,
     note NVARCHAR(255) NULL,
     logged_at DATETIME2(0) NOT NULL
       CONSTRAINT DF_vehicle_logs_logged_at DEFAULT SYSUTCDATETIME(),
@@ -122,6 +122,106 @@ BEGIN
       new_status IS NULL OR new_status IN ('parked', 'inactive', 'left')
     )
   );
+END;
+GO
+
+-- Ensure Unicode-compatible text columns for existing databases.
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.parking_zones')
+    AND name = 'car_size'
+    AND TYPE_NAME(system_type_id) = 'varchar'
+)
+BEGIN
+  ALTER TABLE dbo.parking_zones ALTER COLUMN car_size NVARCHAR(10) NOT NULL;
+END;
+GO
+
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.parking_zones')
+    AND name = 'status'
+    AND TYPE_NAME(system_type_id) = 'varchar'
+)
+BEGIN
+  ALTER TABLE dbo.parking_zones ALTER COLUMN status NVARCHAR(20) NOT NULL;
+END;
+GO
+
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.parking_slots')
+    AND name = 'status'
+    AND TYPE_NAME(system_type_id) = 'varchar'
+)
+BEGIN
+  ALTER TABLE dbo.parking_slots ALTER COLUMN status NVARCHAR(20) NOT NULL;
+END;
+GO
+
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.vehicles')
+    AND name = 'plate_number'
+    AND TYPE_NAME(system_type_id) = 'varchar'
+)
+BEGIN
+  ALTER TABLE dbo.vehicles ALTER COLUMN plate_number NVARCHAR(20) NOT NULL;
+END;
+GO
+
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.vehicles')
+    AND name = 'car_size'
+    AND TYPE_NAME(system_type_id) = 'varchar'
+)
+BEGIN
+  ALTER TABLE dbo.vehicles ALTER COLUMN car_size NVARCHAR(10) NOT NULL;
+END;
+GO
+
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.vehicles')
+    AND name = 'status'
+    AND TYPE_NAME(system_type_id) = 'varchar'
+)
+BEGIN
+  ALTER TABLE dbo.vehicles ALTER COLUMN status NVARCHAR(20) NOT NULL;
+END;
+GO
+
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.vehicle_logs')
+    AND name = 'event_type'
+    AND TYPE_NAME(system_type_id) = 'varchar'
+)
+BEGIN
+  ALTER TABLE dbo.vehicle_logs ALTER COLUMN event_type NVARCHAR(20) NOT NULL;
+END;
+GO
+
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.vehicle_logs')
+    AND name = 'old_status'
+    AND TYPE_NAME(system_type_id) = 'varchar'
+)
+BEGIN
+  ALTER TABLE dbo.vehicle_logs ALTER COLUMN old_status NVARCHAR(20) NULL;
+END;
+GO
+
+IF EXISTS (
+  SELECT 1 FROM sys.columns
+  WHERE object_id = OBJECT_ID('dbo.vehicle_logs')
+    AND name = 'new_status'
+    AND TYPE_NAME(system_type_id) = 'varchar'
+)
+BEGIN
+  ALTER TABLE dbo.vehicle_logs ALTER COLUMN new_status NVARCHAR(20) NULL;
 END;
 GO
 
