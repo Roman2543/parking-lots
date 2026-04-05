@@ -1,0 +1,272 @@
+{
+  "info": {
+    "_postman_id": "1f9cd3d1-3bb9-44ae-8fd7-0ba4c4429a12",
+    "name": "Parking Lots API",
+    "description": "Collection for Parking Lots interview project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Parking Lot",
+      "item": [
+        {
+          "name": "Create Parking Lot",
+          "request": {
+            "description": "Enum values:\n- car_size: small | medium | large",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"zone_name\": \"A\",\n  \"car_size\": \"small\",\n  \"parking_space\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parking-lot/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-lot", "create"]
+            }
+          }
+        },
+        {
+          "name": "Add Parking Lots",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"zone_name\": \"A\",\n  \"adding_space\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parking-lot/add-lots",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-lot", "add-lots"]
+            }
+          }
+        },
+        {
+          "name": "Get Available Zones",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/parking-lot/available-zones",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-lot", "available-zones"]
+            }
+          }
+        },
+        {
+          "name": "Get Available Zones by Car Size",
+          "request": {
+            "description": "Enum values:\n- car_size: small | medium | large",
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/parking-lot/available-zones?car_size=small",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-lot", "available-zones"],
+              "query": [
+                {
+                  "key": "car_size",
+                  "value": "small",
+                  "description": "small | medium | large"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Parking Lot Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/parking-lot/status?zone_name=A&parking_lot=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-lot", "status"],
+              "query": [
+                {
+                  "key": "zone_name",
+                  "value": "A"
+                },
+                {
+                  "key": "parking_lot",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Parking Zone Status",
+          "request": {
+            "description": "Enum values:\n- status: active | inactive",
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"zone_name\": \"A\",\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parking-lot/zone-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-lot", "zone-status"]
+            }
+          }
+        },
+        {
+          "name": "Update Parking Lot Status",
+          "request": {
+            "description": "Enum values:\n- status: active | inactive",
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"zone_name\": \"A\",\n  \"parking_lot\": 1,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parking-lot/lot-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-lot", "lot-status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parking Car",
+      "item": [
+        {
+          "name": "Park Car",
+          "request": {
+            "description": "Enum values:\n- car_size: small | medium | large",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plate_number\": \"AA-1234\",\n  \"car_size\": \"small\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parking-car/park",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-car", "park"]
+            }
+          }
+        },
+        {
+          "name": "Leave Car",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plate_number\": \"AA-1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/parking-car/leave",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-car", "leave"]
+            }
+          }
+        },
+        {
+          "name": "Search Vehicle",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/parking-car/search-vehicle?plate_number=AA-1234",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-car", "search-vehicle"],
+              "query": [
+                {
+                  "key": "plate_number",
+                  "value": "AA-1234"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List by Registration Plate",
+          "request": {
+            "description": "Enum values:\n- field: registration-plate | parking-slot\n- car_size: small | medium | large",
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/parking-car/list?field=registration-plate&car_size=small",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-car", "list"],
+              "query": [
+                {
+                  "key": "field",
+                  "value": "registration-plate",
+                  "description": "registration-plate | parking-slot"
+                },
+                {
+                  "key": "car_size",
+                  "value": "small",
+                  "description": "small | medium | large"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List by Parking Slot",
+          "request": {
+            "description": "Enum values:\n- field: registration-plate | parking-slot\n- car_size: small | medium | large",
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/parking-car/list?field=parking-slot&car_size=small",
+              "host": ["{{baseUrl}}"],
+              "path": ["parking-car", "list"],
+              "query": [
+                {
+                  "key": "field",
+                  "value": "parking-slot",
+                  "description": "registration-plate | parking-slot"
+                },
+                {
+                  "key": "car_size",
+                  "value": "small",
+                  "description": "small | medium | large"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
