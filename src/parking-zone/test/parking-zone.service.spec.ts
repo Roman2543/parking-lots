@@ -29,6 +29,7 @@ describe('ParkingZoneService', () => {
    */
   const mockParkingSlotRepository = {
     create: jest.fn() as jest.Mock,
+    find: jest.fn() as jest.Mock,
     findOne: jest.fn() as jest.Mock,
     count: jest.fn() as jest.Mock,
     update: jest.fn() as jest.Mock,
@@ -39,6 +40,8 @@ describe('ParkingZoneService', () => {
    * Transaction manager mock used inside DataSource.transaction callback.
    */
   const mockManager = {
+    findOne: jest.fn() as jest.Mock,
+    find: jest.fn() as jest.Mock,
     save: jest.fn() as jest.Mock,
   };
 
@@ -150,6 +153,176 @@ describe('ParkingZoneService', () => {
       // Assert
       await expect(action).rejects.toThrow('Zone name already exists');
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('addParkingLots', () => {
+    it('should append new lot numbers from current max slot and return total slot', async () => {
+      // Arrange
+      mockManager.findOne.mockImplementation(() =>
+        Promise.resolve({
+          zone_id: 'zone-1',
+          zone_name: 'A',
+          status: ActivationStatus.ACTIVE,
+        }),
+      );
+      mockManager.find.mockImplementation(() =>
+        Promise.resolve([{ slot_number: 1 }, { slot_number: 2 }]),
+      );
+      mockParkingSlotRepository.create.mockImplementation((value) => value);
+      mockManager.save.mockImplementation(() => Promise.resolve(undefined));
+      mockDataSource.transaction.mockImplementation((callback: unknown) => {
+        if (typeof callback !== 'function') {
+          return Promise.resolve(undefined);
+        }
+
+        const runInTransaction = callback as (
+          manager: typeof mockManager,
+        ) => unknown;
+        return Promise.resolve(runInTransaction(mockManager));
+      });
+      (uuidv4 as jest.Mock)
+        .mockReturnValueOnce('slot-uuid-3')
+        .mockReturnValueOnce('slot-uuid-4');
+
+      // Act
+      const result = await service.addParkingLots({
+        zone_name: 'A',
+        adding_space: 2,
+      });
+
+      // Assert
+      expect(result).toEqual({
+        zone_name: 'A',
+        total_slot: 4,
+      });
+      expect(mockManager.find).toHaveBeenCalledWith(ParkingSlotModel, {
+        where: { zone_id: 'zone-1' },
+        select: ['slot_number'],
+      });
+      expect(mockManager.save).toHaveBeenCalledWith(ParkingSlotModel, [
+        {
+          slot_id: 'slot-uuid-3',
+          zone_id: 'zone-1',
+          slot_number: 3,
+          status: ActivationStatus.AVAILABLE,
+        },
+        {
+          slot_id: 'slot-uuid-4',
+          zone_id: 'zone-1',
+          slot_number: 4,
+          status: ActivationStatus.AVAILABLE,
+        },
+      ]);
+    });
+
+    it('should start slot numbering from 1 when zone has no slots', async () => {
+      // Arrange
+      mockManager.findOne.mockImplementation(() =>
+        Promise.resolve({
+          zone_id: 'zone-empty',
+          zone_name: 'B',
+          status: ActivationStatus.ACTIVE,
+        }),
+      );
+      mockManager.find.mockImplementation(() => Promise.resolve([]));
+      mockManager.save.mockImplementation(() => Promise.resolve(undefined));
+      mockParkingSlotRepository.create.mockImplementation((value) => value);
+      mockDataSource.transaction.mockImplementation((callback: unknown) => {
+        if (typeof callback !== 'function') {
+          return Promise.resolve(undefined);
+        }
+
+        const runInTransaction = callback as (
+          manager: typeof mockManager,
+        ) => unknown;
+        return Promise.resolve(runInTransaction(mockManager));
+      });
+      (uuidv4 as jest.Mock)
+        .mockReturnValueOnce('slot-uuid-1')
+        .mockReturnValueOnce('slot-uuid-2');
+
+      // Act
+      const result = await service.addParkingLots({
+        zone_name: 'B',
+        adding_space: 2,
+      });
+
+      // Assert
+      expect(result).toEqual({
+        zone_name: 'B',
+        total_slot: 2,
+      });
+      expect(mockManager.save).toHaveBeenCalledWith(ParkingSlotModel, [
+        {
+          slot_id: 'slot-uuid-1',
+          zone_id: 'zone-empty',
+          slot_number: 1,
+          status: ActivationStatus.AVAILABLE,
+        },
+        {
+          slot_id: 'slot-uuid-2',
+          zone_id: 'zone-empty',
+          slot_number: 2,
+          status: ActivationStatus.AVAILABLE,
+        },
+      ]);
+    });
+
+    it('should throw when zone is not found', async () => {
+      // Arrange
+      mockManager.findOne.mockImplementation(() => Promise.resolve(null));
+      mockDataSource.transaction.mockImplementation((callback: unknown) => {
+        if (typeof callback !== 'function') {
+          return Promise.resolve(undefined);
+        }
+
+        const runInTransaction = callback as (
+          manager: typeof mockManager,
+        ) => unknown;
+        return Promise.resolve(runInTransaction(mockManager));
+      });
+
+      // Act
+      const action = service.addParkingLots({
+        zone_name: 'Z',
+        adding_space: 1,
+      });
+
+      // Assert
+      await expect(action).rejects.toThrow('Zone not found');
+      expect(mockManager.find).not.toHaveBeenCalled();
+    });
+
+    it('should throw when zone is inactive', async () => {
+      // Arrange
+      mockManager.findOne.mockImplementation(() =>
+        Promise.resolve({
+          zone_id: 'zone-2',
+          zone_name: 'C',
+          status: ActivationStatus.INACTIVE,
+        }),
+      );
+      mockDataSource.transaction.mockImplementation((callback: unknown) => {
+        if (typeof callback !== 'function') {
+          return Promise.resolve(undefined);
+        }
+
+        const runInTransaction = callback as (
+          manager: typeof mockManager,
+        ) => unknown;
+        return Promise.resolve(runInTransaction(mockManager));
+      });
+
+      // Act
+      const action = service.addParkingLots({
+        zone_name: 'C',
+        adding_space: 1,
+      });
+
+      // Assert
+      await expect(action).rejects.toThrow('Zone is inactive');
+      expect(mockManager.find).not.toHaveBeenCalled();
     });
   });
 
