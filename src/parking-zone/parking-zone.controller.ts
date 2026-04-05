@@ -19,6 +19,8 @@ import { UpdateParkingZoneStatusDto } from './dtos/request-update-parking-zone-s
 import { UpdateParkingLotStatusDto } from './dtos/request-update-parking-lot-status.dto';
 import { UpdateParkingZoneStatusResponseDto } from './dtos/response-update-parking-zone-status.dto';
 import { UpdateParkingLotStatusResponseDto } from './dtos/response-update-parking-lot-status.dto';
+import { AddParkingLotsDto } from './dtos/request-add-parking-lots.dto';
+import { AddParkingLotsResponseDto } from './dtos/response-add-parking-lots.dto';
 import {
   ApiOkResponse,
   ApiOperation,
@@ -40,6 +42,20 @@ export class ParkingZoneController {
     @Body() body: CreateParkingZoneDto,
   ): Promise<CreateParkingZoneResponseDto> {
     return this.parkingZoneService.createZoneWithSlots(body);
+  }
+
+  @Post('add-lots')
+  @HttpCode(201)
+  @SuccessMessage('Parking lots added successfully')
+  @ApiOperation({
+    summary:
+      'Add parking lots into an existing zone by zone name and lot names',
+  })
+  @ApiOkResponse({ type: AddParkingLotsResponseDto })
+  async addParkingLots(
+    @Body() body: AddParkingLotsDto,
+  ): Promise<AddParkingLotsResponseDto> {
+    return this.parkingZoneService.addParkingLots(body);
   }
 
   @Get('available-zones')

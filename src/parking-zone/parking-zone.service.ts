@@ -13,6 +13,8 @@ import { UpdateParkingLotStatusDto } from './dtos/request-update-parking-lot-sta
 import { UpdateParkingZoneStatusResponseDto } from './dtos/response-update-parking-zone-status.dto';
 import { UpdateParkingLotStatusResponseDto } from './dtos/response-update-parking-lot-status.dto';
 import { ActivationStatus } from '../common/enums/activation-status.enum';
+import { AddParkingLotsDto } from './dtos/request-add-parking-lots.dto';
+import { AddParkingLotsResponseDto } from './dtos/response-add-parking-lots.dto';
 
 @Injectable()
 export class ParkingZoneService {
@@ -65,6 +67,50 @@ export class ParkingZoneService {
       zone_name,
       total_slots: parking_space,
       car_size,
+    };
+  }
+
+  async addParkingLots(
+    dto: AddParkingLotsDto,
+  ): Promise<AddParkingLotsResponseDto> {
+    const { zone_name, adding_space } = dto;
+
+    const zone = await this.parkingZone.findOne({
+      where: { zone_name },
+    });
+
+    if (!zone) {
+      throw new BadRequestException('Zone not found');
+    }
+
+    if (zone.status === ActivationStatus.INACTIVE.toString()) {
+      throw new BadRequestException('Zone is inactive');
+    }
+
+    const existingSlots = await this.parkingSlot.find({
+      where: { zone_id: zone.zone_id },
+      select: ['slot_number'],
+    });
+    const maxSlotNumber = existingSlots.length
+      ? Math.max(...existingSlots.map((slot) => slot.slot_number))
+      : 0;
+
+    const slots = Array.from({ length: adding_space }, (_, idx) =>
+      this.parkingSlot.create({
+        slot_id: uuidv4(),
+        zone_id: zone.zone_id,
+        slot_number: maxSlotNumber + idx + 1,
+        status: ActivationStatus.AVAILABLE,
+      }),
+    );
+
+    await this.parkingSlot.save(slots);
+
+    const totalSlot = existingSlots.length + adding_space;
+
+    return {
+      zone_name,
+      total_slot: totalSlot,
     };
   }
 

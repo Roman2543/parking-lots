@@ -537,7 +537,63 @@ curl -X PATCH "http://localhost:3000/parking-lot/lot-status" \
 - ตั้งเป็น `active` → สถานะช่องจอดจริงใน DB จะเปลี่ยนเป็น `available`
 - ตั้งเป็น `inactive` → ไม่สามารถทำได้หากช่องนั้นมีรถจอดอยู่ (`occupied`)
 
-### 9) Get List By Car Size
+### 9) Add Parking Lots By Zone
+
+- Method: `POST`
+- Path: `/parking-lot/add-lots`
+- Request body:
+  - `zone_name`: string (required)
+  - `adding_space`: number (required, must be >= 1)
+
+คำอธิบาย:
+
+- ระบบจะสร้างเลขช่องจอดต่อจากเลขสูงสุดที่มีอยู่ในโซนนั้นอัตโนมัติ
+
+### cURL (success)
+
+```bash
+curl -X POST "http://localhost:3000/parking-lot/add-lots" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "zone_name": "A",
+    "adding_space": 2
+  }'
+```
+
+ตัวอย่าง Success Response:
+
+```json
+{
+  "code": "201",
+  "message": "Parking lots added successfully",
+  "data": {
+    "zone_name": "A",
+    "total_slot": 7
+  }
+}
+```
+
+ตัวอย่าง Error Response (zone ไม่พบ):
+
+```json
+{
+  "code": "400",
+  "message": "Zone not found",
+  "data": null
+}
+```
+
+ตัวอย่าง Error Response (zone ไม่ active):
+
+```json
+{
+  "code": "400",
+  "message": "Zone is inactive",
+  "data": null
+}
+```
+
+### 10) Get List By Car Size
 
 - Method: `GET`
 - Path: `/parking-car/list`
